@@ -3,25 +3,54 @@
 @showCharacter Alice left aya_base happy
 
 Alice [base]:
-ok but gag
+ok girls time to test the new features
 
-Alice <aya_base> [happy]:
-yeah
+@playSFX cat
 
-Alice <aya_blue> [base]:
-BLUE
-
-Alice [base]:
-stay blue
-
-Alice <aya_base> [base]:
-be normal
+Alice [happy]:
+I just screamed
 
 @setPortrait Alice aya_blue
 
-@moveCharacter Alice left 1
+Alice [base]:
+ok now how about some music
 
-@shake 0.5 1
+@playmusic pump fadeIn:2
+
+@wait 3
 
 Alice [happy]:
-this is probably over engineered but ok
+cool now wait a sec and lets stop and fade it with another one
+
+@wait 2
+
+@stopMusic fadeOut:1
+
+@wait 1
+
+@playMusic chill fadeIn:2
+
+@wait 1
+
+Alice [base]:
+damn its gotten sad
+
+Alice [base]:
+but let's change the scenery shall we
+
+@setBackground campus fade
+
+@wait 1
+
+@moveCharacter Alice right 1 wait
+
+@shake intensity:0.5 duration:0.3
+
+@wait 1
+
+@moveCharacter Alice center 0.5
+
+@setBackground living_room crossfade
+
+Alice [happy]:
+gag

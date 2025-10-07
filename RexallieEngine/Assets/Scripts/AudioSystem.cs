@@ -21,7 +21,7 @@ public class AudioManager : MonoBehaviour
     public float sfxVolume = 1f;
     public float voiceVolume = 1f;
 
-    private Coroutine musicFadeCoroutine;
+    // We no longer need the 'musicFadeCoroutine' variable.
 
     void Awake()
     {
@@ -54,15 +54,16 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        if (musicFadeCoroutine != null)
-            StopCoroutine(musicFadeCoroutine);
+        // Stop any currently running fades to prevent conflicts.
+        StopAllCoroutines();
 
         if (fadeInDuration > 0)
         {
-            musicFadeCoroutine = StartCoroutine(FadeInMusic(track.clip, fadeInDuration));
+            StartCoroutine(FadeInMusic(track.clip, fadeInDuration));
         }
         else
         {
+            musicSource.volume = musicVolume; // Ensure volume is correct for instant playback
             musicSource.clip = track.clip;
             musicSource.Play();
         }
@@ -70,12 +71,12 @@ public class AudioManager : MonoBehaviour
 
     public void StopMusic(float fadeOutDuration = 0f)
     {
-        if (musicFadeCoroutine != null)
-            StopCoroutine(musicFadeCoroutine);
+        // Stop any currently running fades to prevent conflicts.
+        StopAllCoroutines();
 
-        if (fadeOutDuration > 0)
+        if (fadeOutDuration > 0 && musicSource.isPlaying)
         {
-            musicFadeCoroutine = StartCoroutine(FadeOutMusic(fadeOutDuration));
+            StartCoroutine(FadeOutMusic(fadeOutDuration));
         }
         else
         {
@@ -114,7 +115,6 @@ public class AudioManager : MonoBehaviour
 
         musicSource.volume = 0f;
         musicSource.Stop();
-        musicSource.volume = musicVolume;
     }
 
     // ==================== SOUND EFFECTS ====================

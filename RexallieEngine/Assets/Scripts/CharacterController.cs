@@ -175,6 +175,26 @@ public class CharacterController : MonoBehaviour
         }
     }
 
+    // This new public method will be used for moves that we need to wait for.
+    public IEnumerator MoveToUIPositionCoroutine(Vector2 targetPosition, float duration)
+    {
+        RectTransform rectTransform = GetComponent<RectTransform>();
+        if (rectTransform == null) yield break;
+
+        Vector2 startPosition = rectTransform.anchoredPosition;
+        float elapsed = 0f;
+
+        // Use the duration parameter to control the speed of the movement
+        while (elapsed < duration)
+        {
+            rectTransform.anchoredPosition = Vector2.Lerp(startPosition, targetPosition, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        // Ensure the character is exactly at the target position when done.
+        rectTransform.anchoredPosition = targetPosition;
+    }
+
     private System.Collections.IEnumerator MoveToPosition(Vector3 targetPosition)
     {
         while (Vector3.Distance(transform.position, targetPosition) > 0.01f)

@@ -57,7 +57,15 @@ public class ActionExecutor : MonoBehaviour
                 ExecuteHideCharacter(action);
                 break;
             case "movecharacter":
-                ExecuteMoveCharacter(action);
+                // If the 4th parameter is "wait", start the blocking coroutine
+                if (action.parameters.GetValueOrDefault("param4", "") == "wait")
+                {
+                    StartCoroutine(ExecuteMoveCharacterAndWait(action));
+                }
+                else
+                {
+                    ExecuteMoveCharacter(action); // Otherwise, run the old non-blocking version
+                }
                 break;
             case "setexpression":
                 ExecuteSetExpression(action);
@@ -82,7 +90,7 @@ public class ActionExecutor : MonoBehaviour
                 ExecutePlaySFX(action);
                 break;
 
-            // Utility actions
+            // Utility actions (these will always wait)
             case "wait":
                 StartCoroutine(ExecuteWait(action));
                 break;
@@ -142,6 +150,22 @@ public class ActionExecutor : MonoBehaviour
             characterManager.HideCharacter(character);
         }
     }
+
+    private IEnumerator ExecuteMoveCharacterAndWait(ActionNode action)
+    {
+        isExecutingAction = true; // Signal to DialogueManager that we are busy
+        string character = action.parameters.GetValueOrDefault("param1", "");
+        string position = action.parameters.GetValueOrDefault("param2", "center");
+        float duration = float.Parse(action.parameters.GetValueOrDefault("param3", "0.5"));
+
+        if (characterManager != null)
+        {
+            // Start and wait for the CharacterManager's move coroutine
+            yield return characterManager.StartCoroutine(characterManager.MoveCharacterAndWait(character, position, duration));
+        }
+        isExecutingAction = false; // Signal that we are finished
+    }
+
 
     private void ExecuteMoveCharacter(ActionNode action)
     {

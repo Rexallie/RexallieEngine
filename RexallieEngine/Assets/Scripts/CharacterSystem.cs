@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -208,6 +209,28 @@ public class CharacterManager : MonoBehaviour
             default:
                 Debug.LogWarning($"Unknown position: {position}, defaulting to center");
                 return new Vector3(centerPositionX / 100f, 0f, 0f);
+        }
+    }
+
+    public IEnumerator MoveCharacterAndWait(string characterName, string position, float duration = 0.5f)
+    {
+        if (activeCharacters.ContainsKey(characterName.ToLower()))
+        {
+            CharacterController controller = activeCharacters[characterName.ToLower()];
+            if (useUIMode)
+            {
+                float targetX = GetUIPositionX(position);
+                RectTransform rectTransform = controller.GetComponent<RectTransform>();
+                Vector2 targetPosition = new Vector2(targetX, rectTransform.anchoredPosition.y);
+
+                // Start and wait for the controller's movement coroutine to finish
+                yield return controller.StartCoroutine(controller.MoveToUIPositionCoroutine(targetPosition, duration));
+            }
+            else
+            {
+                // This is where a world-space version would go
+                yield return null;
+            }
         }
     }
 }

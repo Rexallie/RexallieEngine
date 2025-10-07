@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using System.Collections;
 
 // ==================== DATA STRUCTURES ====================
 
@@ -252,6 +253,8 @@ public class DialogueManager : MonoBehaviour
     public event Action<ActionNode> OnActionExecuted;
     public event Action OnDialogueEnded;
 
+    private bool isProcessingNode = false; // To prevent concurrent advances
+
     void Awake()
     {
         if (Instance == null)
@@ -299,13 +302,22 @@ public class DialogueManager : MonoBehaviour
 
     public void AdvanceDialogue()
     {
+        // Prevent starting a new process if one is already running
+        if (isProcessingNode) return;
+
+        StartCoroutine(ProcessCurrentNode());
+    }
+
+    private IEnumerator ProcessCurrentNode()
+    {
+        isProcessingNode = true;
+
         if (currentScript == null || currentNodeIndex >= currentScript.nodes.Count)
         {
             OnDialogueEnded?.Invoke();
-            return;
+            isProcessingNode = false;
+            yield break; // Exit the coroutine
         }
-
-        Debug.Log($"Advancing to node {currentNodeIndex}");
 
         DialogueNode node = currentScript.nodes[currentNodeIndex];
         currentNodeIndex++;
@@ -313,15 +325,34 @@ public class DialogueManager : MonoBehaviour
         if (node is DialogueLine dialogueLine)
         {
             OnDialogueLineDisplayed?.Invoke(dialogueLine);
+            // For dialogue lines, we stop and wait for the next user input.
         }
         else if (node is ActionNode actionNode)
         {
-            ExecuteAction(actionNode);
-            // Automatically advance after actions
+            OnActionExecuted?.Invoke(actionNode);
+
+            // Wait a frame to ensure the action has started
+            yield return null;
+
+            // Now, wait for the action to complete if it's a "waiting" one.
+            if (ActionExecutor.Instance != null)
+            {
+                while (ActionExecutor.Instance.IsExecutingAction())
+                {
+                    yield return null;
+                }
+            }
+
+            // Once the action is done, immediately process the next node.
+            isProcessingNode = false; // Unlock for the next call
             AdvanceDialogue();
+            yield break;
         }
+
+        isProcessingNode = false; // Unlock after processing
     }
 
+    /*
     private void ExecuteAction(ActionNode action)
     {
         OnActionExecuted?.Invoke(action);
@@ -333,7 +364,7 @@ public class DialogueManager : MonoBehaviour
         {
             //Debug.Log($"  {param.Key}: {param.Value}");
         }
-    }
+    }*/
 
     public bool IsDialogueActive()
     {
