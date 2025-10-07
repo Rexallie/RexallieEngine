@@ -1,0 +1,24 @@
+{
+  "name": "vn-script-highlighter",
+  "displayName": "Visual Novel Script Highlighter",
+  "description": "Syntax highlighting for Visual Novel script files",
+  "version": "1.0.0",
+  "publisher": "your-name",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [{
+      "id": "vn-script",
+      "aliases": ["VN Script", "vnscript"],
+      "extensions": [".vns", ".vnscript", ".vn"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "vn-script",
+      "scopeName": "source.vnscript",
+      "path": "./syntaxes/vn-script.tmLanguage.json"
+    }]
+  }
+}

@@ -1,0 +1,27 @@
+# Test Scene
+
+@showCharacter Alice left aya_base happy
+
+Alice [base]:
+ok but gag
+
+Alice <aya_base> [happy]:
+yeah
+
+Alice <aya_blue> [base]:
+BLUE
+
+Alice [base]:
+stay blue
+
+Alice <aya_base> [base]:
+be normal
+
+@setPortrait Alice aya_blue
+
+@moveCharacter Alice left 1
+
+@shake 0.5 1
+
+Alice [happy]:
+this is probably over engineered but ok

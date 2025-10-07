@@ -1,0 +1,57 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "VN Script",
+  "scopeName": "source.vnscript",
+  "patterns": [
+    {
+      "name": "comment.line.vn-script",
+      "match": "^\\s*//.*$"
+    },
+    {
+      "name": "markup.heading.vn-script",
+      "match": "^\\s*#.*$"
+    },
+    {
+      "name": "keyword.control.action.vn-script",
+      "match": "^\\s*@\\w+"
+    },
+    {
+      "name": "variable.parameter.vn-script",
+      "match": "\\b\\w+:\\S+"
+    },
+    {
+      "name": "entity.name.function.vn-script",
+      "match": "(?<=^\\s*@\\w+\\s+)\\S+(?!:)"
+    },
+    {
+      "include": "#dialogue-line"
+    }
+  ],
+  "repository": {
+    "dialogue-line": {
+      "patterns": [
+        {
+          "name": "meta.dialogue.full.vn-script",
+          "match": "^\\s*(\\w+)\\s*(<[^>]+>)?\\s*(\\[[^\\]]+\\])?\\s*(:)\\s*(.*)$",
+          "captures": {
+            "1": {
+              "name": "entity.name.character.vn-script"
+            },
+            "2": {
+              "name": "string.quoted.portrait.vn-script"
+            },
+            "3": {
+              "name": "constant.language.expression.vn-script"
+            },
+            "4": {
+              "name": "punctuation.separator.vn-script"
+            },
+            "5": {
+              "name": "string.unquoted.dialogue.vn-script"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
