@@ -2,17 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
-using System.Collections;
+using System.Collections; // Added for the coroutine
 
-// ==================== DATA STRUCTURES ====================
+// ==================== UPDATED DATA STRUCTURES ====================
 
-[Serializable]
+[System.Serializable]
 public abstract class DialogueNode
 {
     public string id;
+    public int lineNumber; // NEW: Every node now knows its original line number.
 }
 
-[Serializable]
+[System.Serializable]
 public class DialogueLine : DialogueNode
 {
     public string speaker;
@@ -21,220 +22,181 @@ public class DialogueLine : DialogueNode
     public string portrait;
 }
 
-[Serializable]
+[System.Serializable]
 public class ActionNode : DialogueNode
 {
     public string action;
     public Dictionary<string, string> parameters;
 }
 
-[Serializable]
+[System.Serializable]
+public class ChoiceNode : DialogueNode
+{
+    public List<ChoiceOption> options = new List<ChoiceOption>();
+}
+
+[System.Serializable]
+public class ChoiceOption
+{
+    public string Text { get; set; }
+    public string TargetLabel { get; set; }
+}
+
+[System.Serializable]
 public class ScriptData
 {
     public string sceneId;
     public List<DialogueNode> nodes;
+    public Dictionary<string, int> labels;
 }
 
-// ==================== PARSER ====================
+// ==================== CORRECTED PARSER ====================
 
 public class DialogueScriptParser
 {
-    [SerializeField]
-    private bool debugLogs = false;
-
     private int nodeCounter = 0;
 
     public ScriptData ParseScript(string scriptText)
     {
-        ScriptData data = new ScriptData();
-        data.nodes = new List<DialogueNode>();
-        data.sceneId = "Untitled Scene"; // Default scene ID
+        ScriptData data = new ScriptData
+        {
+            nodes = new List<DialogueNode>(),
+            labels = new Dictionary<string, int>(),
+            sceneId = "Untitled Scene"
+        };
         nodeCounter = 0;
 
-        string[] lines = scriptText.Split('\n');
+        string[] lines = scriptText.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
 
-        if (debugLogs)
-            Debug.Log($"Parsing script with {lines.Length} lines");
+        // First Pass: Find all labels and their line numbers.
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i].Trim();
+            if (line.EndsWith(":") && !line.Contains(" ") && !line.Contains("[") && !line.Contains("<"))
+            {
+                string label = line.Substring(0, line.Length - 1).Trim();
+                if (!data.labels.ContainsKey(label))
+                {
+                    data.labels.Add(label, i);
+                }
+            }
+        }
 
-        bool foundSceneHeader = false;
-
+        // Second Pass: Parse the script content.
         for (int i = 0; i < lines.Length; i++)
         {
             string line = lines[i].Trim();
 
-            // Skip empty lines
-            if (string.IsNullOrWhiteSpace(line))
+            if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#") || line.StartsWith("//") || (line.EndsWith(":") && !line.Contains(" ") && !line.Contains("[") && !line.Contains("<")))
                 continue;
 
-            // Skip comments (lines that start with # but aren't the first scene header)
-            if (line.StartsWith("#"))
+            if (line.StartsWith("@choice"))
             {
-                // Only treat the first # line as scene header if it's substantial
-                if (!foundSceneHeader && line.Length > 2)
+                ChoiceNode choiceNode = new ChoiceNode { id = $"node_{nodeCounter++:D3}", lineNumber = i };
+                for (int j = i + 1; j < lines.Length; j++)
                 {
-                    string potentialSceneId = line.Substring(1).Trim();
-                    // Check if it looks like a scene header (not a comment)
-                    if (!potentialSceneId.StartsWith("#") && potentialSceneId.Split(' ').Length <= 10)
+                    string choiceLine = lines[j].Trim();
+                    if (choiceLine.StartsWith("@endchoice"))
                     {
-                        data.sceneId = potentialSceneId;
-                        foundSceneHeader = true;
-
-                        if (debugLogs)
-                            Debug.Log($"Found scene header: {data.sceneId}");
+                        i = j;
+                        break;
+                    }
+                    Match match = Regex.Match(choiceLine, "\"(.*?)\"\\s*->\\s*(\\w+)");
+                    if (match.Success)
+                    {
+                        choiceNode.options.Add(new ChoiceOption
+                        {
+                            Text = match.Groups[1].Value,
+                            TargetLabel = match.Groups[2].Value
+                        });
                     }
                 }
+                data.nodes.Add(choiceNode);
                 continue;
             }
 
-            // Skip line comments
-            if (line.StartsWith("//"))
-                continue;
-
-            // Parse action commands
             if (line.StartsWith("@"))
             {
-                ActionNode action = ParseAction(line);
-                if (action != null)
-                {
-                    data.nodes.Add(action);
-
-                    if (debugLogs)
-                        Debug.Log($"Parsed action: {action.action}");
-                }
+                ActionNode action = ParseAction(line, i);
+                if (action != null) data.nodes.Add(action);
                 continue;
             }
 
-            // Parse dialogue lines (speaker line followed by text on next line)
             if (line.Contains(":"))
             {
-                // Check if there's text after the colon on the same line
                 int colonIndex = line.LastIndexOf(':');
-                string afterColon = line.Substring(colonIndex + 1).Trim();
+                string dialogueText = line.Substring(colonIndex + 1).Trim();
 
-                string dialogueText = afterColon;
-
-                // If there's no text after colon, get it from the next line
-                if (string.IsNullOrWhiteSpace(afterColon) && i + 1 < lines.Length)
+                if (string.IsNullOrWhiteSpace(dialogueText) && i + 1 < lines.Length)
                 {
-                    dialogueText = lines[i + 1].Trim();
-                    i++; // Skip the next line since we've consumed it
-                }
-
-                // Only parse if we have actual dialogue text
-                if (!string.IsNullOrWhiteSpace(dialogueText))
-                {
-                    DialogueLine dialogue = ParseDialogue(line, dialogueText);
-                    if (dialogue != null)
+                    string nextLine = lines[i + 1].Trim();
+                    if (!nextLine.StartsWith("@") && !nextLine.Contains("->") && (!nextLine.EndsWith(":") || nextLine.Contains(" ")))
                     {
-                        data.nodes.Add(dialogue);
-
-                        if (debugLogs)
-                            Debug.Log($"Parsed dialogue: {dialogue.speaker} - {dialogue.text}");
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"Failed to parse dialogue line: {line}");
+                        dialogueText = nextLine;
+                        i++;
                     }
                 }
+
+                DialogueLine dialogue = ParseDialogue(line.Substring(0, colonIndex), dialogueText, i);
+                if (dialogue != null) data.nodes.Add(dialogue);
                 continue;
             }
         }
-
-        if (debugLogs)
-            Debug.Log($"Parsing complete. Total nodes: {data.nodes.Count}");
-
         return data;
     }
 
-    private ActionNode ParseAction(string line)
+    private ActionNode ParseAction(string line, int lineNumber)
     {
-        // Remove @ symbol
-        line = line.Substring(1).Trim();
-
-        ActionNode action = new ActionNode();
-        action.id = $"node_{nodeCounter++:D3}";
-        action.parameters = new Dictionary<string, string>();
-
-        // Split into parts
-        string[] parts = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-        if (parts.Length == 0)
-            return null;
-
+        ActionNode action = new ActionNode { id = $"node_{nodeCounter++:D3}", lineNumber = lineNumber, parameters = new Dictionary<string, string>() };
+        string[] parts = line.Substring(1).Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return null;
         action.action = parts[0];
-
-        // Parse parameters
         for (int i = 1; i < parts.Length; i++)
         {
-            string part = parts[i];
-
-            // Check if it's a key:value parameter
-            if (part.Contains(":"))
+            if (parts[i].Contains(":"))
             {
-                string[] keyValue = part.Split(':');
-                action.parameters[keyValue[0]] = keyValue[1];
+                string[] kvp = parts[i].Split(new[] { ':' }, 2);
+                action.parameters[kvp[0]] = kvp[1];
             }
             else
             {
-                // Positional parameters get generic names
-                action.parameters[$"param{i}"] = part;
+                action.parameters[$"param{i}"] = parts[i];
             }
         }
-
         return action;
     }
 
-    private DialogueLine ParseDialogue(string line, string dialogueText)
+    private DialogueLine ParseDialogue(string speakerPart, string dialogueText, int lineNumber)
     {
-        // Pattern: SpeakerName <portrait> [expression]: (text on same line or next line)
-        // Or: SpeakerName [expression]:
-        // Or: SpeakerName <portrait>:
-        // Or: SpeakerName:
-
-        // Remove the colon and everything after it from the speaker line
-        int colonIndex = line.LastIndexOf(':');
-        if (colonIndex == -1)
-            return null;
-
-        string speakerPart = line.Substring(0, colonIndex).Trim();
-
-        // Try to extract portrait and expression
         string portrait = null;
         string expression = null;
-        string speaker = speakerPart;
 
-        // Check for portrait: <...>
-        Regex portraitRegex = new Regex(@"<([^>]+)>");
-        Match portraitMatch = portraitRegex.Match(speakerPart);
+        Match portraitMatch = Regex.Match(speakerPart, @"<([^>]+)>");
         if (portraitMatch.Success)
         {
             portrait = portraitMatch.Groups[1].Value.Trim();
-            speakerPart = portraitRegex.Replace(speakerPart, "").Trim();
+            speakerPart = speakerPart.Replace(portraitMatch.Value, "").Trim();
         }
 
-        // Check for expression: [...]
-        Regex expressionRegex = new Regex(@"\[([^\]]+)\]");
-        Match expressionMatch = expressionRegex.Match(speakerPart);
+        Match expressionMatch = Regex.Match(speakerPart, @"\[([^\]]+)\]");
         if (expressionMatch.Success)
         {
             expression = expressionMatch.Groups[1].Value.Trim();
-            speakerPart = expressionRegex.Replace(speakerPart, "").Trim();
+            speakerPart = speakerPart.Replace(expressionMatch.Value, "").Trim();
         }
 
-        // What's left is the speaker name
-        speaker = speakerPart.Trim();
+        string speaker = speakerPart.Trim();
+        if (string.IsNullOrEmpty(speaker)) return null;
 
-        if (string.IsNullOrWhiteSpace(speaker))
-            return null;
-
-        DialogueLine dialogue = new DialogueLine();
-        dialogue.id = $"node_{nodeCounter++:D3}";
-        dialogue.speaker = speaker;
-        dialogue.portrait = portrait ?? $"{speaker.ToLower()}_base";
-        dialogue.expression = expression ?? "neutral";
-        dialogue.text = dialogueText;
-
-        return dialogue;
+        return new DialogueLine
+        {
+            id = $"node_{nodeCounter++:D3}",
+            lineNumber = lineNumber,
+            speaker = speaker,
+            portrait = portrait, // No longer defaulting here to allow null
+            expression = expression, // No longer defaulting here to allow null
+            text = dialogueText
+        };
     }
 }
 
@@ -247,15 +209,15 @@ public class DialogueManager : MonoBehaviour
     private ScriptData currentScript;
     private int currentNodeIndex = 0;
     private DialogueScriptParser parser;
+    private string currentScriptName;
+    private bool isProcessingNode = false;
+    private bool isWaitingOnChoice = false;
 
-    // Events for UI updates
+    // Events
     public event Action<DialogueLine> OnDialogueLineDisplayed;
     public event Action<ActionNode> OnActionExecuted;
     public event Action OnDialogueEnded;
-
-    private bool isProcessingNode = false; // To prevent concurrent advances
-
-    private string currentScriptName;
+    public event Action<List<ChoiceOption>> OnChoicePresented;
 
     void Awake()
     {
@@ -270,57 +232,37 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-    public void LoadScript(string scriptText)
-    {
-        currentScript = parser.ParseScript(scriptText);
-        currentNodeIndex = 0;
-
-        if (currentScript == null || currentScript.nodes.Count == 0)
-        {
-            Debug.LogError("Failed to load script or script is empty.");
-            return;
-        }
-
-        Debug.Log($"Loaded script: {currentScript.sceneId} with {currentScript.nodes.Count} nodes");
-    }
-
     public void LoadScriptFromFile(string language, string fileName)
     {
-        // Remove any extension if provided - Resources.Load doesn't use extensions
+        currentScriptName = fileName;
         fileName = System.IO.Path.GetFileNameWithoutExtension(fileName);
-
         TextAsset scriptAsset = Resources.Load<TextAsset>($"Dialogues/{language}/{fileName}");
-
-        currentScriptName = fileName; // Store the name for saving
-
         if (scriptAsset != null)
         {
-            LoadScript(scriptAsset.text);
+            currentScript = parser.ParseScript(scriptAsset.text);
+            currentNodeIndex = 0;
+            isWaitingOnChoice = false;
         }
         else
         {
-            Debug.LogError($"Could not find script: Resources/Dialogues/{language}/{fileName}.vns\n" +
-                          "Make sure the file is in the Resources folder and Unity has imported it.");
+            Debug.LogError($"Could not find script: Resources/Dialogues/{language}/{fileName}");
         }
     }
 
     public void AdvanceDialogue()
     {
-        // Prevent starting a new process if one is already running
-        if (isProcessingNode) return;
-
+        if (isProcessingNode || isWaitingOnChoice) return;
         StartCoroutine(ProcessCurrentNode());
     }
 
     private IEnumerator ProcessCurrentNode()
     {
         isProcessingNode = true;
-
         if (currentScript == null || currentNodeIndex >= currentScript.nodes.Count)
         {
             OnDialogueEnded?.Invoke();
             isProcessingNode = false;
-            yield break; // Exit the coroutine
+            yield break;
         }
 
         DialogueNode node = currentScript.nodes[currentNodeIndex];
@@ -329,70 +271,82 @@ public class DialogueManager : MonoBehaviour
         if (node is DialogueLine dialogueLine)
         {
             OnDialogueLineDisplayed?.Invoke(dialogueLine);
-            // For dialogue lines, we stop and wait for the next user input.
+        }
+        else if (node is ChoiceNode choiceNode)
+        {
+            isWaitingOnChoice = true;
+            OnChoicePresented?.Invoke(choiceNode.options);
         }
         else if (node is ActionNode actionNode)
         {
             OnActionExecuted?.Invoke(actionNode);
 
-            // Wait a frame to ensure the action has started
-            yield return null;
+            // The jump action will change the node index, so we check if it was a jump
+            bool wasJump = actionNode.action.ToLower() == "jump";
 
-            // Now, wait for the action to complete if it's a "waiting" one.
-            if (ActionExecutor.Instance != null)
+            if (!wasJump)
             {
-                while (ActionExecutor.Instance.IsExecutingAction())
+                yield return null;
+                if (ActionExecutor.Instance != null)
                 {
-                    yield return null;
+                    while (ActionExecutor.Instance.IsExecutingAction())
+                    {
+                        yield return null;
+                    }
                 }
+                isProcessingNode = false;
+                AdvanceDialogue();
+                yield break;
             }
-
-            // Once the action is done, immediately process the next node.
-            isProcessingNode = false; // Unlock for the next call
-            AdvanceDialogue();
-            yield break;
         }
-
-        isProcessingNode = false; // Unlock after processing
+        isProcessingNode = false;
     }
 
-    /*
-    private void ExecuteAction(ActionNode action)
+    public void MakeChoice(string targetLabel)
     {
-        OnActionExecuted?.Invoke(action);
+        isWaitingOnChoice = false;
+        JumpToLabel(targetLabel);
+    }
 
-        // You can handle actions here or let other systems subscribe to the event
-
-        //Debug.Log($"Executing action: {action.action}");
-        foreach (var param in action.parameters)
+    public void JumpToLabel(string label)
+    {
+        if (currentScript.labels.TryGetValue(label, out int lineIndex))
         {
-            //Debug.Log($"  {param.Key}: {param.Value}");
+            currentNodeIndex = FindNodeIndexForLine(lineIndex);
+            isProcessingNode = false; // Unlock processing before advancing
+            AdvanceDialogue();
         }
-    }*/
+        else
+        {
+            Debug.LogError($"Label '{label}' not found in script '{currentScriptName}'!");
+        }
+    }
+
+    // THIS IS THE CORRECTED LOGIC
+    private int FindNodeIndexForLine(int targetLineIndex)
+    {
+        for (int i = 0; i < currentScript.nodes.Count; i++)
+        {
+            // Find the first node that was parsed on or after the label's line number.
+            if (currentScript.nodes[i].lineNumber >= targetLineIndex)
+            {
+                return i;
+            }
+        }
+        return currentScript.nodes.Count; // Jump to end if no nodes are after the label
+    }
+
+    public string GetCurrentScriptName() { return currentScriptName; }
+    public int GetCurrentNodeIndex() { return Mathf.Max(0, currentNodeIndex - 1); }
+    public void RestoreState(string scriptName, int nodeIndex)
+    {
+        LoadScriptFromFile("en", scriptName);
+        currentNodeIndex = nodeIndex;
+        AdvanceDialogue();
+    }
 
     public bool IsDialogueActive()
     {
         return currentScript != null && currentNodeIndex < currentScript.nodes.Count;
-    }
-
-    // Add these new methods to the end of the class
-    public string GetCurrentScriptName()
-    {
-        return currentScriptName;
-    }
-
-    public int GetCurrentNodeIndex()
-    {
-        // We subtract 1 because AdvanceDialogue increments before processing.
-        // This ensures we save the node we are currently looking at.
-        return Mathf.Max(0, currentNodeIndex - 1);
-    }
-
-    public void RestoreState(string scriptName, int nodeIndex)
-    {
-        // The language is hardcoded to "en" for now, you might want to save this too!
-        LoadScriptFromFile("en", scriptName);
-        currentNodeIndex = nodeIndex;
-        AdvanceDialogue(); // Display the loaded line
     }
 }

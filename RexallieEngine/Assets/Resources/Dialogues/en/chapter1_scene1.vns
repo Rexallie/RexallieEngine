@@ -1,60 +1,57 @@
-# Test Scene
+@set alice_points = 0
+@set met_bob = false
 
-@showCharacter Alice left aya_base happy fadeIn:1 slideFrom:farLeft
+start:
 
-Alice [base]:
-ok girls time to test the new features
+    @showCharacter Alice left alice_casual base
 
-@playSFX cat
+    Alice [base]:
+    Who should I talk to?
 
-Alice [happy]:
-I just screamed
+    @choice
+        "Talk to Bob." -> talk_to_bob
+        "Talk to Charlie." -> talk_to_charlie
+    @endchoice
 
-@setPortrait Alice aya_blue
+talk_to_bob:
 
-Alice [base]:
-ok now how about some music
+    @set met_bob = true
+    @set alice_points += 5
 
-@playmusic pump fadeIn:2
+    Alice [base]:
+    Hi bob!
 
-@wait 3
+    @jump check_ending
 
-Alice [happy]:
-cool now wait a sec and lets stop and fade it with another one
+talk_to_charlie:
 
-@wait 2
+    @set alice_points -= 2
 
-@stopMusic fadeOut:1
+    Alice [base]:
+    Hey Charlie.
 
-@hideCharacter Alice fadeOut:0.1 slideTo:right
+    @jump check_ending
 
-@wait 1
+check_ending:
 
-@playMusic chill fadeIn:2
+    @if alice_points > 3 jump good_outcome
+    @if alice_points <= 3 jump bad_outcome
 
-@wait 1
+good_outcome:
 
-@showCharacter Alice center aya_base happy fadeIn:0.2 slideFrom:right
+    Alice [base]:
+    I feel like I made a good connection today.
 
-Alice [base]:
-damn its gotten sad
+    @jump the_end
+    
+bad_outcome:
 
-Alice [base]:
-but let's change the scenery shall we
+    Alice [base]:
+    Well, that was awkward.
 
-@setBackground campus fade
+    @jump the_end
 
-@wait 1
+the_end:
 
-@moveCharacter Alice right 1 wait
-
-@shake intensity:0.5 duration:0.3
-
-@wait 1
-
-@moveCharacter Alice center 0.5
-
-@setBackground living_room crossfade
-
-Alice [happy]:
-gag
+    Alice [base]:
+    The end.

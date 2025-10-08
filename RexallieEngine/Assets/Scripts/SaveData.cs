@@ -16,11 +16,21 @@ public class SaveData
     // Audio State
     public string currentMusicTrackName;
 
-    // Constructor to initialize the lists
+    public List<VariableSaveData> variables;
+
     public SaveData()
     {
         activeCharacters = new List<CharacterSaveData>();
+        variables = new List<VariableSaveData>();
     }
+}
+
+[System.Serializable]
+public class VariableSaveData
+{
+    public string name;
+    public string value;
+    public string type;
 }
 
 // A specific class to hold the state of a single character.

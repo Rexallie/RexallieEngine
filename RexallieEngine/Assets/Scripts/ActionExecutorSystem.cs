@@ -49,6 +49,19 @@ public class ActionExecutor : MonoBehaviour
     {
         switch (action.action.ToLower())
         {
+            // Script actions
+            case "jump":
+                ExecuteJump(action);
+                break;
+
+            // Variable actions
+            case "set":
+                ExecuteSet(action);
+                break;
+            case "if":
+                ExecuteIf(action);
+                break;
+
             // Character actions
             case "showcharacter":
                 StartCoroutine(ExecuteShowCharacter(action));
@@ -104,6 +117,85 @@ public class ActionExecutor : MonoBehaviour
             default:
                 Debug.LogWarning($"Unknown action: {action.action}");
                 break;
+        }
+    }
+
+    // ==================== SCRIPT ACTIONS ====================
+
+    private void ExecuteJump(ActionNode action)
+    {
+        // @jump some_label
+        string label = action.parameters.GetValueOrDefault("param1", "");
+        if (!string.IsNullOrEmpty(label) && DialogueManager.Instance != null)
+        {
+            DialogueManager.Instance.JumpToLabel(label);
+        }
+    }
+
+    // ==================== VARIABLE ACTIONS ====================
+
+    private void ExecuteSet(ActionNode action)
+    {
+        // Syntax: @set variable_name operator value
+        // Example: @set alice_points += 10
+        // Example: @set met_bob = true
+        if (action.parameters.Count < 3) return;
+
+        string varName = action.parameters["param1"];
+        string op = action.parameters["param2"];
+        string valueStr = action.parameters["param3"];
+
+        // Get current value (defaulting to 0 if it doesn't exist)
+        int currentInt = VariableManager.Instance.GetVariable<int>(varName);
+
+        // Try to parse the value as an int
+        if (int.TryParse(valueStr, out int valueInt))
+        {
+            int newValue = currentInt;
+            switch (op)
+            {
+                case "=": newValue = valueInt; break;
+                case "+=": newValue = currentInt + valueInt; break;
+                case "-=": newValue = currentInt - valueInt; break;
+            }
+            VariableManager.Instance.SetVariable(varName, newValue);
+            return; // Done with integers
+        }
+
+        // Try to parse the value as a bool
+        if (bool.TryParse(valueStr, out bool valueBool))
+        {
+            if (op == "=")
+            {
+                VariableManager.Instance.SetVariable(varName, valueBool);
+            }
+            return; // Done with booleans
+        }
+
+        // Otherwise, treat as a string
+        if (op == "=")
+        {
+            VariableManager.Instance.SetVariable(varName, valueStr);
+        }
+    }
+
+    private void ExecuteIf(ActionNode action)
+    {
+        // Syntax: @if variable operator value jump label
+        // Example: @if alice_points >= 50 jump good_ending
+        if (action.parameters.Count < 5) return;
+
+        // Reconstruct the condition string: "alice_points >= 50"
+        string condition = $"{action.parameters["param1"]} {action.parameters["param2"]} {action.parameters["param3"]}";
+        string jumpKeyword = action.parameters["param4"];
+        string label = action.parameters["param5"];
+
+        if (jumpKeyword.ToLower() == "jump")
+        {
+            if (VariableManager.Instance.EvaluateCondition(condition))
+            {
+                DialogueManager.Instance.JumpToLabel(label);
+            }
         }
     }
 

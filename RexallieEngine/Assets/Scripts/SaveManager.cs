@@ -90,12 +90,24 @@ public class SaveManager : MonoBehaviour
             data.currentMusicTrackName = AudioManager.Instance.GetCurrentMusicTrack();
         }
 
+        // Get Variable State
+        if (VariableManager.Instance != null)
+        {
+            data.variables = VariableManager.Instance.GetVariableData();
+        }
+
         return data;
     }
 
     private void RestoreGameState(SaveData data)
     {
         // Restore managers in a logical order (e.g., background first, then characters)
+
+        if (VariableManager.Instance != null)
+        {
+            VariableManager.Instance.RestoreVariableData(data.variables);
+        }
+
         if (BackgroundManager.Instance != null)
         {
             BackgroundManager.Instance.RestoreState(data.currentBackgroundName);
