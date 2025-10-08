@@ -749,7 +749,7 @@ MonoBehaviour:
   rightPositionX: 600
   farLeftPositionX: -900
   farRightPositionX: 900
-  characterScale: 8
+  characterScale: 10
 --- !u!4 &1004108250
 Transform:
   m_ObjectHideFlags: 0

@@ -5,12 +5,12 @@ using UnityEngine;
 public class CharacterController : MonoBehaviour
 {
     [Header("References - UI Mode")]
-    public UnityEngine.UI.Image portraitImage; // Body/outfit layer
-    public UnityEngine.UI.Image expressionImage; // Face overlay layer
+    public UnityEngine.UI.Image portraitImage;
+    public UnityEngine.UI.Image expressionImage;
 
     [Header("References - Sprite Mode (Optional)")]
-    public SpriteRenderer portraitRenderer; // Body/outfit layer
-    public SpriteRenderer expressionRenderer; // Face overlay layer
+    public SpriteRenderer portraitRenderer;
+    public SpriteRenderer expressionRenderer;
 
     [Header("Settings")]
     public float moveSpeed = 2f;
@@ -24,7 +24,6 @@ public class CharacterController : MonoBehaviour
 
     void Awake()
     {
-        // Detect which mode we're using
         useUIMode = (portraitImage != null && expressionImage != null);
 
         if (!useUIMode && (portraitRenderer == null || expressionRenderer == null))
@@ -32,10 +31,8 @@ public class CharacterController : MonoBehaviour
             Debug.LogError("CharacterController requires either UI Images OR SpriteRenderers!");
         }
 
-        // Make sure expression is rendered on top
         if (useUIMode)
         {
-            // For UI, we use hierarchy order or set it explicitly
             expressionImage.transform.SetAsLastSibling();
         }
         else if (portraitRenderer != null && expressionRenderer != null)
@@ -46,14 +43,16 @@ public class CharacterController : MonoBehaviour
         canvasGroup = GetComponent<CanvasGroup>();
         if (canvasGroup == null && useUIMode)
         {
-            // Add CanvasGroup for UI mode if not present
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
         }
     }
 
     private void Start()
     {
-        DialogueManager.Instance.OnDialogueLineDisplayed += UpdateCharacter;
+        if (DialogueManager.Instance != null)
+        {
+            DialogueManager.Instance.OnDialogueLineDisplayed += UpdateCharacter;
+        }
     }
 
     public void SetCharacter(CharacterData character, string portrait, string expression)
@@ -61,7 +60,6 @@ public class CharacterController : MonoBehaviour
         currentCharacter = character;
         currentPortrait = portrait;
         currentExpression = expression;
-
         UpdateSprites();
     }
 
@@ -76,7 +74,6 @@ public class CharacterController : MonoBehaviour
         currentPortrait = portrait;
         if (!string.IsNullOrEmpty(expression))
             currentExpression = expression;
-
         UpdateSprites();
     }
 
@@ -88,43 +85,29 @@ public class CharacterController : MonoBehaviour
 
     private void UpdatePortraitSprite()
     {
-        if (currentCharacter == null)
-            return;
-
+        if (currentCharacter == null) return;
         Sprite newPortrait = currentCharacter.GetPortrait(currentPortrait);
         if (newPortrait != null)
         {
-            if (useUIMode && portraitImage != null)
-            {
-                portraitImage.sprite = newPortrait;
-            }
-            else if (portraitRenderer != null)
-            {
-                portraitRenderer.sprite = newPortrait;
-            }
+            if (useUIMode && portraitImage != null) portraitImage.sprite = newPortrait;
+            else if (portraitRenderer != null) portraitRenderer.sprite = newPortrait;
         }
     }
 
     private void UpdateExpressionSprite()
     {
-        if (currentCharacter == null)
-            return;
-
+        if (currentCharacter == null) return;
         Sprite newExpression = currentCharacter.GetExpression(currentExpression);
         if (newExpression != null)
         {
-            if (useUIMode && expressionImage != null)
-            {
-                expressionImage.sprite = newExpression;
-            }
-            else if (expressionRenderer != null)
-            {
-                expressionRenderer.sprite = newExpression;
-            }
+            if (useUIMode && expressionImage != null) expressionImage.sprite = newExpression;
+            else if (expressionRenderer != null) expressionRenderer.sprite = newExpression;
         }
     }
 
-    // Position management
+    // ==================== POSITIONING ====================
+
+    // RESTORED: For non-UI world space positioning
     public void SetPosition(Vector3 position, bool instant = false)
     {
         if (instant)
@@ -138,15 +121,22 @@ public class CharacterController : MonoBehaviour
         }
     }
 
-    // UI Position management (using RectTransform)
+    // RESTORED: Coroutine for non-UI world space movement
+    private IEnumerator MoveToPosition(Vector3 targetPosition)
+    {
+        while (Vector3.Distance(transform.position, targetPosition) > 0.01f)
+        {
+            transform.position = Vector3.Lerp(transform.position, targetPosition, moveSpeed * Time.deltaTime);
+            yield return null;
+        }
+        transform.position = targetPosition;
+    }
+
+    // For UI positioning
     public void SetUIPosition(Vector2 anchoredPosition, bool instant = false)
     {
         RectTransform rectTransform = GetComponent<RectTransform>();
-        if (rectTransform == null)
-        {
-            Debug.LogError("SetUIPosition called but no RectTransform found!");
-            return;
-        }
+        if (rectTransform == null) return;
 
         if (instant)
         {
@@ -161,7 +151,6 @@ public class CharacterController : MonoBehaviour
 
     private void UpdateCharacter(DialogueLine line)
     {
-        // Check if this character needs to change portrait/expression
         if (line.speaker != null && currentCharacter != null && line.speaker.ToLower() == currentCharacter.characterName.ToLower())
         {
             if (!string.IsNullOrEmpty(line.portrait) && line.portrait.ToLower() != currentPortrait.ToLower())
@@ -175,37 +164,7 @@ public class CharacterController : MonoBehaviour
         }
     }
 
-    // This new public method will be used for moves that we need to wait for.
-    public IEnumerator MoveToUIPositionCoroutine(Vector2 targetPosition, float duration)
-    {
-        RectTransform rectTransform = GetComponent<RectTransform>();
-        if (rectTransform == null) yield break;
-
-        Vector2 startPosition = rectTransform.anchoredPosition;
-        float elapsed = 0f;
-
-        // Use the duration parameter to control the speed of the movement
-        while (elapsed < duration)
-        {
-            rectTransform.anchoredPosition = Vector2.Lerp(startPosition, targetPosition, elapsed / duration);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-        // Ensure the character is exactly at the target position when done.
-        rectTransform.anchoredPosition = targetPosition;
-    }
-
-    private System.Collections.IEnumerator MoveToPosition(Vector3 targetPosition)
-    {
-        while (Vector3.Distance(transform.position, targetPosition) > 0.01f)
-        {
-            transform.position = Vector3.Lerp(transform.position, targetPosition, moveSpeed * Time.deltaTime);
-            yield return null;
-        }
-        transform.position = targetPosition;
-    }
-
-    private System.Collections.IEnumerator MoveToUIPosition(Vector2 targetPosition)
+    private IEnumerator MoveToUIPosition(Vector2 targetPosition)
     {
         RectTransform rectTransform = GetComponent<RectTransform>();
         if (rectTransform == null) yield break;
@@ -218,15 +177,84 @@ public class CharacterController : MonoBehaviour
         rectTransform.anchoredPosition = targetPosition;
     }
 
-    // Visibility management
+    public IEnumerator MoveToUIPositionCoroutine(Vector2 targetPosition, float duration)
+    {
+        RectTransform rectTransform = GetComponent<RectTransform>();
+        if (rectTransform == null) yield break;
+
+        Vector2 startPosition = rectTransform.anchoredPosition;
+        float startTime = Time.time;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed = Time.time - startTime;
+            float progress = Mathf.Clamp01(elapsed / duration);
+            rectTransform.anchoredPosition = Vector2.Lerp(startPosition, targetPosition, progress);
+            yield return null;
+        }
+
+        rectTransform.anchoredPosition = targetPosition;
+    }
+
+    // ==================== ANIMATIONS & VISIBILITY ====================
+
+    public IEnumerator AnimateAppearance(bool isShowing, float fadeDuration, float moveDuration, Vector2 moveTargetPosition)
+    {
+        RectTransform rectTransform = GetComponent<RectTransform>();
+        if (rectTransform == null) yield break;
+
+        if (isShowing)
+        {
+            SetAlpha(0f);
+            gameObject.SetActive(true);
+        }
+
+        float startAlpha = isShowing ? 0f : canvasGroup.alpha;
+        float endAlpha = isShowing ? 1f : 0f;
+        Vector2 startPosition = rectTransform.anchoredPosition;
+
+        float maxDuration = Mathf.Max(fadeDuration, moveDuration);
+        if (maxDuration <= 0) maxDuration = float.Epsilon;
+
+        float startTime = Time.time;
+        float elapsed = 0f;
+
+        while (elapsed < maxDuration)
+        {
+            elapsed = Time.time - startTime;
+
+            if (fadeDuration > 0)
+            {
+                float fadeProgress = Mathf.Clamp01(elapsed / fadeDuration);
+                SetAlpha(Mathf.Lerp(startAlpha, endAlpha, fadeProgress));
+            }
+
+            if (moveDuration > 0)
+            {
+                float moveProgress = Mathf.Clamp01(elapsed / moveDuration);
+                rectTransform.anchoredPosition = Vector2.Lerp(startPosition, moveTargetPosition, moveProgress);
+            }
+
+            yield return null;
+        }
+
+        SetAlpha(endAlpha);
+        if (moveDuration > 0)
+        {
+            rectTransform.anchoredPosition = moveTargetPosition;
+        }
+
+        if (!isShowing)
+        {
+            gameObject.SetActive(false);
+        }
+    }
+
     public void Show(bool instant = false)
     {
         gameObject.SetActive(true);
-
-        if (instant)
-        {
-            SetAlpha(1f);
-        }
+        if (instant) SetAlpha(1f);
         else
         {
             StopAllCoroutines();
@@ -236,10 +264,7 @@ public class CharacterController : MonoBehaviour
 
     public void Hide(bool instant = false)
     {
-        if (instant)
-        {
-            gameObject.SetActive(false);
-        }
+        if (instant) gameObject.SetActive(false);
         else
         {
             StopAllCoroutines();
@@ -251,58 +276,35 @@ public class CharacterController : MonoBehaviour
     {
         if (useUIMode)
         {
-            // UI Mode - use CanvasGroup or Image colors
             if (canvasGroup != null)
             {
                 canvasGroup.alpha = alpha;
             }
             else
             {
-                if (portraitImage != null)
-                {
-                    Color color = portraitImage.color;
-                    color.a = alpha;
-                    portraitImage.color = color;
-                }
-
-                if (expressionImage != null)
-                {
-                    Color color = expressionImage.color;
-                    color.a = alpha;
-                    expressionImage.color = color;
-                }
+                if (portraitImage != null) { Color c = portraitImage.color; c.a = alpha; portraitImage.color = c; }
+                if (expressionImage != null) { Color c = expressionImage.color; c.a = alpha; expressionImage.color = c; }
             }
         }
         else
         {
-            // Sprite Renderer Mode
-            if (portraitRenderer != null)
-            {
-                Color color = portraitRenderer.color;
-                color.a = alpha;
-                portraitRenderer.color = color;
-            }
-
-            if (expressionRenderer != null)
-            {
-                Color color = expressionRenderer.color;
-                color.a = alpha;
-                expressionRenderer.color = color;
-            }
+            if (portraitRenderer != null) { Color c = portraitRenderer.color; c.a = alpha; portraitRenderer.color = c; }
+            if (expressionRenderer != null) { Color c = expressionRenderer.color; c.a = alpha; expressionRenderer.color = c; }
         }
     }
 
-    private System.Collections.IEnumerator FadeToAlpha(float targetAlpha, Action onComplete = null)
+    private IEnumerator FadeToAlpha(float targetAlpha, Action onComplete = null)
     {
-        float startAlpha = canvasGroup != null ? canvasGroup.alpha :
-                          (useUIMode && portraitImage != null ? portraitImage.color.a :
-                          (portraitRenderer != null ? portraitRenderer.color.a : 0f));
+        float startAlpha = canvasGroup != null ? canvasGroup.alpha : (useUIMode && portraitImage != null ? portraitImage.color.a : (portraitRenderer != null ? portraitRenderer.color.a : 0f));
+        float startTime = Time.time;
+        float duration = 1f / fadeSpeed;
         float elapsed = 0f;
 
-        while (elapsed < 1f)
+        while (elapsed < duration)
         {
-            elapsed += fadeSpeed * Time.deltaTime;
-            float alpha = Mathf.Lerp(startAlpha, targetAlpha, elapsed);
+            elapsed = Time.time - startTime;
+            float progress = Mathf.Clamp01(elapsed / duration);
+            float alpha = Mathf.Lerp(startAlpha, targetAlpha, progress);
             SetAlpha(alpha);
             yield return null;
         }

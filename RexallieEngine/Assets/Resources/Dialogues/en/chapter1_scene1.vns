@@ -1,6 +1,6 @@
 # Test Scene
 
-@showCharacter Alice left aya_base happy
+@showCharacter Alice left aya_base happy fadeIn:1 slideFrom:farLeft
 
 Alice [base]:
 ok girls time to test the new features
@@ -26,11 +26,15 @@ cool now wait a sec and lets stop and fade it with another one
 
 @stopMusic fadeOut:1
 
+@hideCharacter Alice fadeOut:0.5 slideTo:right
+
 @wait 1
 
 @playMusic chill fadeIn:2
 
 @wait 1
+
+@showCharacter Alice center fadeIn:0.2 slideFrom:right
 
 Alice [base]:
 damn its gotten sad

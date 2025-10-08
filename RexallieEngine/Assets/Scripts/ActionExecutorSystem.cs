@@ -51,10 +51,10 @@ public class ActionExecutor : MonoBehaviour
         {
             // Character actions
             case "showcharacter":
-                ExecuteShowCharacter(action);
+                StartCoroutine(ExecuteShowCharacter(action));
                 break;
             case "hidecharacter":
-                ExecuteHideCharacter(action);
+                StartCoroutine(ExecuteHideCharacter(action));
                 break;
             case "movecharacter":
                 // If the 4th parameter is "wait", start the blocking coroutine
@@ -109,45 +109,48 @@ public class ActionExecutor : MonoBehaviour
 
     // ==================== CHARACTER ACTIONS ====================
 
-    private void ExecuteShowCharacter(ActionNode action)
+    private IEnumerator ExecuteShowCharacter(ActionNode action)
     {
-        // @showCharacter alice left happy
-        // or @showCharacter alice left alice_school_uniform happy
-        string character = action.parameters.GetValueOrDefault("param1", "");
-        string position = action.parameters.GetValueOrDefault("param2", "center");
-        string param3 = action.parameters.GetValueOrDefault("param3", "");
-        string param4 = action.parameters.GetValueOrDefault("param4", "");
-
-        string portraitSet;
-        string expression;
-
-        // Check if we have 4 params (character, position, portrait, expression)
-        if (!string.IsNullOrEmpty(param4))
-        {
-            portraitSet = param3;
-            expression = param4;
-        }
-        else
-        {
-            // Only 3 params (character, position, expression)
-            portraitSet = $"{character.ToLower()}_base";
-            expression = param3;
-        }
+        // Check if any effect parameters exist to determine if we need to wait
+        bool hasEffect = action.parameters.ContainsKey("fadeIn") || action.parameters.ContainsKey("slideFrom");
 
         if (characterManager != null)
         {
-            characterManager.ShowCharacter(character, position, portraitSet, expression);
+            if (hasEffect)
+            {
+                isExecutingAction = true;
+                yield return characterManager.StartCoroutine(characterManager.ShowCharacterWithEffect(action));
+                isExecutingAction = false;
+            }
+            else // No effects, show instantly
+            {
+                string character = action.parameters.GetValueOrDefault("param1", "");
+                string position = action.parameters.GetValueOrDefault("param2", "center");
+                string portrait = action.parameters.GetValueOrDefault("param3", $"{character.ToLower()}_base");
+                string expression = action.parameters.GetValueOrDefault("param4", "");
+                characterManager.ShowCharacter(character, position, portrait, expression);
+            }
         }
     }
 
-    private void ExecuteHideCharacter(ActionNode action)
+    private IEnumerator ExecuteHideCharacter(ActionNode action)
     {
-        // @hideCharacter alice
+        // Check if any effect parameters exist
+        bool hasEffect = action.parameters.ContainsKey("fadeOut") || action.parameters.ContainsKey("slideTo");
         string character = action.parameters.GetValueOrDefault("param1", "");
 
         if (characterManager != null)
         {
-            characterManager.HideCharacter(character);
+            if (hasEffect)
+            {
+                isExecutingAction = true;
+                yield return characterManager.StartCoroutine(characterManager.HideCharacterWithEffect(action));
+                isExecutingAction = false;
+            }
+            else // No effects, hide instantly
+            {
+                characterManager.HideCharacter(character);
+            }
         }
     }
 
@@ -263,7 +266,8 @@ public class ActionExecutor : MonoBehaviour
         // @wait 1.0
         float duration = float.Parse(action.parameters.GetValueOrDefault("param1", "1"));
         isExecutingAction = true;
-        yield return new WaitForSeconds(duration);
+        // USE REALTIME WAIT
+        yield return new WaitForSecondsRealtime(duration);
         isExecutingAction = false;
     }
 

@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-
 public class CharacterManager : MonoBehaviour
 {
     public static CharacterManager Instance { get; private set; }
@@ -12,7 +11,7 @@ public class CharacterManager : MonoBehaviour
     public List<CharacterData> availableCharacters = new List<CharacterData>();
 
     [Header("Display Settings")]
-    public RectTransform characterContainer; // Changed to RectTransform for UI
+    public RectTransform characterContainer;
     public GameObject characterPrefab;
 
     [Header("Position Presets (Anchored Position X)")]
@@ -28,7 +27,7 @@ public class CharacterManager : MonoBehaviour
     public float characterScale = 1f;
 
     private Dictionary<string, CharacterController> activeCharacters = new Dictionary<string, CharacterController>();
-    private bool useUIMode = true; // Assume UI mode if using RectTransform
+    private bool useUIMode = true;
 
     void Awake()
     {
@@ -40,8 +39,6 @@ public class CharacterManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
-
-        // Detect if we're using UI or world space
         useUIMode = (characterContainer != null);
     }
 
@@ -52,6 +49,7 @@ public class CharacterManager : MonoBehaviour
 
     public void ShowCharacter(string characterName, string position, string portrait, string expression)
     {
+        CharacterController controller = GetOrCreateController(characterName);
         CharacterData data = GetCharacterData(characterName);
         if (data == null)
         {
@@ -59,42 +57,6 @@ public class CharacterManager : MonoBehaviour
             return;
         }
 
-        CharacterController controller;
-
-        // Get or create character controller
-        if (activeCharacters.ContainsKey(characterName.ToLower()))
-        {
-            controller = activeCharacters[characterName.ToLower()];
-        }
-        else
-        {
-            GameObject charObj = Instantiate(characterPrefab, characterContainer);
-            charObj.name = $"Character_{characterName}";
-            controller = charObj.GetComponent<CharacterController>();
-
-            // Set up RectTransform for UI mode
-            if (useUIMode)
-            {
-                RectTransform rectTransform = charObj.GetComponent<RectTransform>();
-                if (rectTransform != null)
-                {
-                    // Set anchors to bottom-center
-                    rectTransform.anchorMin = new Vector2(0.5f, 0f);
-                    rectTransform.anchorMax = new Vector2(0.5f, 0f);
-                    rectTransform.pivot = new Vector2(0.5f, 0f);
-
-                    // Set scale
-                    rectTransform.localScale = Vector3.one * characterScale;
-
-                    // Reset rotation
-                    rectTransform.localRotation = Quaternion.identity;
-                }
-            }
-
-            activeCharacters[characterName.ToLower()] = controller;
-        }
-
-        // Set character data and appearance
         controller.SetCharacter(data, portrait, expression);
 
         if (useUIMode)
@@ -106,14 +68,14 @@ public class CharacterManager : MonoBehaviour
             controller.SetPosition(GetWorldPositionVector(position), true);
         }
 
-        controller.Show();
+        controller.Show(true);
     }
 
     public void HideCharacter(string characterName)
     {
         if (activeCharacters.ContainsKey(characterName.ToLower()))
         {
-            activeCharacters[characterName.ToLower()].Hide();
+            activeCharacters[characterName.ToLower()].Hide(true);
         }
     }
 
@@ -121,15 +83,128 @@ public class CharacterManager : MonoBehaviour
     {
         if (activeCharacters.ContainsKey(characterName.ToLower()))
         {
+            CharacterController controller = activeCharacters[characterName.ToLower()];
             if (useUIMode)
             {
-                SetUIPosition(activeCharacters[characterName.ToLower()], position, false);
+                float targetX = GetUIPositionX(position);
+                Vector2 targetPos = new Vector2(targetX, controller.GetComponent<RectTransform>().anchoredPosition.y);
+                controller.StartCoroutine(controller.MoveToUIPositionCoroutine(targetPos, duration));
             }
             else
             {
-                activeCharacters[characterName.ToLower()].SetPosition(GetWorldPositionVector(position));
+                controller.SetPosition(GetWorldPositionVector(position), false);
             }
         }
+    }
+
+    public IEnumerator MoveCharacterAndWait(string characterName, string position, float duration = 0.5f)
+    {
+        if (activeCharacters.ContainsKey(characterName.ToLower()))
+        {
+            CharacterController controller = activeCharacters[characterName.ToLower()];
+            if (useUIMode)
+            {
+                float targetX = GetUIPositionX(position);
+                Vector2 targetPosition = new Vector2(targetX, controller.GetComponent<RectTransform>().anchoredPosition.y);
+                yield return controller.StartCoroutine(controller.MoveToUIPositionCoroutine(targetPosition, duration));
+            }
+            else
+            {
+                yield return null;
+            }
+        }
+    }
+
+    public IEnumerator ShowCharacterWithEffect(ActionNode action)
+    {
+        string characterName = action.parameters.GetValueOrDefault("param1", "");
+        string positionStr = action.parameters.GetValueOrDefault("param2", "center");
+        string portrait = action.parameters.GetValueOrDefault("param3", $"{characterName.ToLower()}_base");
+        string expression = action.parameters.GetValueOrDefault("param4", "neutral");
+
+        CharacterController controller = GetOrCreateController(characterName);
+        controller.SetCharacter(GetCharacterData(characterName), portrait, expression);
+
+        float fadeDuration = float.Parse(action.parameters.GetValueOrDefault("fadeIn", "0"), System.Globalization.CultureInfo.InvariantCulture);
+        string slideFromDir = action.parameters.GetValueOrDefault("slideFrom", "");
+        float slideDuration = float.Parse(action.parameters.GetValueOrDefault("slideDuration", fadeDuration.ToString()), System.Globalization.CultureInfo.InvariantCulture);
+
+        Vector2 finalPos = new Vector2(GetUIPositionX(positionStr), controller.GetComponent<RectTransform>().anchoredPosition.y);
+        Vector2 startPos = finalPos;
+
+        if (!string.IsNullOrEmpty(slideFromDir))
+        {
+            startPos = GetOffscreenPosition(finalPos, slideFromDir);
+            controller.GetComponent<RectTransform>().anchoredPosition = startPos;
+        }
+
+        yield return controller.StartCoroutine(controller.AnimateAppearance(true, fadeDuration, slideDuration, finalPos));
+    }
+
+    public IEnumerator HideCharacterWithEffect(ActionNode action)
+    {
+        string characterName = action.parameters.GetValueOrDefault("param1", "");
+        if (!activeCharacters.ContainsKey(characterName.ToLower())) yield break;
+
+        CharacterController controller = activeCharacters[characterName.ToLower()];
+
+        float fadeDuration = float.Parse(action.parameters.GetValueOrDefault("fadeOut", "0"), System.Globalization.CultureInfo.InvariantCulture);
+        string slideToDir = action.parameters.GetValueOrDefault("slideTo", "");
+        float slideDuration = float.Parse(action.parameters.GetValueOrDefault("slideDuration", fadeDuration.ToString()), System.Globalization.CultureInfo.InvariantCulture);
+
+        Vector2 currentPos = controller.GetComponent<RectTransform>().anchoredPosition;
+        Vector2 finalPos = currentPos;
+
+        if (!string.IsNullOrEmpty(slideToDir))
+        {
+            finalPos = GetOffscreenPosition(currentPos, slideToDir);
+        }
+
+        yield return controller.StartCoroutine(controller.AnimateAppearance(false, fadeDuration, slideDuration, finalPos));
+    }
+
+    private Vector2 GetOffscreenPosition(Vector2 basePos, string direction)
+    {
+        float horizontalOffset = (Screen.width / 2f) + (basePos.x * 0.5f) + 200f;
+
+        switch (direction.ToLower())
+        {
+            case "farleft":
+                return new Vector2(-horizontalOffset - 300f, basePos.y);
+            case "left":
+                return new Vector2(-horizontalOffset, basePos.y);
+            case "right":
+                return new Vector2(horizontalOffset, basePos.y);
+            case "farright":
+                return new Vector2(horizontalOffset + 300f, basePos.y);
+            default:
+                return basePos;
+        }
+    }
+
+    private CharacterController GetOrCreateController(string characterName)
+    {
+        if (activeCharacters.ContainsKey(characterName.ToLower()))
+        {
+            return activeCharacters[characterName.ToLower()];
+        }
+
+        GameObject charObj = Instantiate(characterPrefab, characterContainer);
+        charObj.name = $"Character_{characterName}";
+        CharacterController controller = charObj.GetComponent<CharacterController>();
+
+        RectTransform rectTransform = charObj.GetComponent<RectTransform>();
+        if (rectTransform != null)
+        {
+            rectTransform.anchorMin = new Vector2(0.5f, 0f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0f);
+            rectTransform.pivot = new Vector2(0.5f, 0f);
+            rectTransform.localScale = Vector3.one * characterScale;
+            rectTransform.localRotation = Quaternion.identity;
+        }
+
+        activeCharacters[characterName.ToLower()] = controller;
+        return controller;
     }
 
     public void SetCharacterExpression(string characterName, string expression)
@@ -158,15 +233,10 @@ public class CharacterManager : MonoBehaviour
         activeCharacters.Clear();
     }
 
-    // UI positioning using RectTransform
     private void SetUIPosition(CharacterController controller, string position, bool instant)
     {
         RectTransform rectTransform = controller.GetComponent<RectTransform>();
-        if (rectTransform == null)
-        {
-            Debug.LogError("Character doesn't have RectTransform!");
-            return;
-        }
+        if (rectTransform == null) return;
 
         float targetX = GetUIPositionX(position);
         Vector2 targetPosition = new Vector2(targetX, rectTransform.anchoredPosition.y);
@@ -196,41 +266,21 @@ public class CharacterManager : MonoBehaviour
         }
     }
 
-    // World space positioning (for non-UI mode)
     private Vector3 GetWorldPositionVector(string position)
     {
+        float xPos = 0;
         switch (position.ToLower())
         {
-            case "left": return new Vector3(leftPositionX / 100f, 0f, 0f);
-            case "center": return new Vector3(centerPositionX / 100f, 0f, 0f);
-            case "right": return new Vector3(rightPositionX / 100f, 0f, 0f);
-            case "farleft": return new Vector3(farLeftPositionX / 100f, 0f, 0f);
-            case "farright": return new Vector3(farRightPositionX / 100f, 0f, 0f);
+            case "left": xPos = leftPositionX; break;
+            case "center": xPos = centerPositionX; break;
+            case "right": xPos = rightPositionX; break;
+            case "farleft": xPos = farLeftPositionX; break;
+            case "farright": xPos = farRightPositionX; break;
             default:
                 Debug.LogWarning($"Unknown position: {position}, defaulting to center");
-                return new Vector3(centerPositionX / 100f, 0f, 0f);
+                xPos = centerPositionX;
+                break;
         }
-    }
-
-    public IEnumerator MoveCharacterAndWait(string characterName, string position, float duration = 0.5f)
-    {
-        if (activeCharacters.ContainsKey(characterName.ToLower()))
-        {
-            CharacterController controller = activeCharacters[characterName.ToLower()];
-            if (useUIMode)
-            {
-                float targetX = GetUIPositionX(position);
-                RectTransform rectTransform = controller.GetComponent<RectTransform>();
-                Vector2 targetPosition = new Vector2(targetX, rectTransform.anchoredPosition.y);
-
-                // Start and wait for the controller's movement coroutine to finish
-                yield return controller.StartCoroutine(controller.MoveToUIPositionCoroutine(targetPosition, duration));
-            }
-            else
-            {
-                // This is where a world-space version would go
-                yield return null;
-            }
-        }
+        return new Vector3(xPos / 100f, 0f, 0f); // Example conversion
     }
 }
