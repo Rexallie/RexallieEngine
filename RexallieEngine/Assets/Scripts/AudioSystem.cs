@@ -21,7 +21,8 @@ public class AudioManager : MonoBehaviour
     public float sfxVolume = 1f;
     public float voiceVolume = 1f;
 
-    // We no longer need the 'musicFadeCoroutine' variable.
+    // Add this near the top of the class
+    private string currentMusicTrack;
 
     void Awake()
     {
@@ -53,6 +54,8 @@ public class AudioManager : MonoBehaviour
             Debug.LogError($"Music track not found: {trackName}");
             return;
         }
+
+        currentMusicTrack = trackName; // Store for saving
 
         // Stop any currently running fades to prevent conflicts.
         StopAllCoroutines();
@@ -171,6 +174,25 @@ public class AudioManager : MonoBehaviour
     {
         voiceVolume = Mathf.Clamp01(volume);
         voiceSource.volume = voiceVolume;
+    }
+
+    // Add these new methods
+    public string GetCurrentMusicTrack()
+    {
+        return currentMusicTrack;
+    }
+
+    public void RestoreState(string musicTrackName)
+    {
+        if (!string.IsNullOrEmpty(musicTrackName))
+        {
+            // Instantly play the music track, no fade.
+            PlayMusic(musicTrackName);
+        }
+        else
+        {
+            StopMusic();
+        }
     }
 }
 

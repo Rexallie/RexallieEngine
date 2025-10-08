@@ -1506,7 +1506,7 @@ MonoBehaviour:
   - clipName: boon
     clip: {fileID: 8300000, guid: b3cb9d8af9611a8428a024f2ff8c8896, type: 3}
   - clipName: cat
-    clip: {fileID: 8300000, guid: f3de56b2b6a31fd439c4f015856f01a9, type: 3}
+    clip: {fileID: 8300000, guid: 8262ecfd2466fe8459181093aa050baf, type: 3}
   voiceClips:
   - clipName: aya
     clip: {fileID: 8300000, guid: 642fd6d39668fbf4daa3b5dc08d63ecd, type: 3}

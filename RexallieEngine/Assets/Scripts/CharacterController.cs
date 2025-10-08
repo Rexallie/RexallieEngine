@@ -188,10 +188,16 @@ public class CharacterController : MonoBehaviour
 
         while (elapsed < duration)
         {
+            // ... inside the while loop
             elapsed = Time.time - startTime;
-            float progress = Mathf.Clamp01(elapsed / duration);
-            rectTransform.anchoredPosition = Vector2.Lerp(startPosition, targetPosition, progress);
+            float linearProgress = Mathf.Clamp01(elapsed / duration);
+
+            // Apply the easing function
+            float easedProgress = Easing.EaseOutQuad(linearProgress);
+
+            rectTransform.anchoredPosition = Vector2.Lerp(startPosition, targetPosition, easedProgress);
             yield return null;
+            // ...
         }
 
         rectTransform.anchoredPosition = targetPosition;
@@ -222,21 +228,30 @@ public class CharacterController : MonoBehaviour
 
         while (elapsed < maxDuration)
         {
+            // ... inside the while loop
             elapsed = Time.time - startTime;
+
+            // Calculate the linear progress first
+            float linearProgress = Mathf.Clamp01(elapsed / maxDuration);
+
+            // Now, apply the easing function to get a curved progress
+            float easedProgress = Easing.EaseOutQuad(linearProgress);
 
             if (fadeDuration > 0)
             {
                 float fadeProgress = Mathf.Clamp01(elapsed / fadeDuration);
-                SetAlpha(Mathf.Lerp(startAlpha, endAlpha, fadeProgress));
+                // Note: We could ease fade and move separately, but for simplicity we'll ease them together.
+                SetAlpha(Mathf.Lerp(startAlpha, endAlpha, easedProgress));
             }
 
             if (moveDuration > 0)
             {
                 float moveProgress = Mathf.Clamp01(elapsed / moveDuration);
-                rectTransform.anchoredPosition = Vector2.Lerp(startPosition, moveTargetPosition, moveProgress);
+                rectTransform.anchoredPosition = Vector2.Lerp(startPosition, moveTargetPosition, easedProgress);
             }
 
             yield return null;
+            // ...
         }
 
         SetAlpha(endAlpha);
@@ -247,7 +262,7 @@ public class CharacterController : MonoBehaviour
 
         if (!isShowing)
         {
-            gameObject.SetActive(false);
+            //gameObject.SetActive(false);
         }
     }
 
@@ -312,4 +327,8 @@ public class CharacterController : MonoBehaviour
         SetAlpha(targetAlpha);
         onComplete?.Invoke();
     }
+
+    public string GetCharacterName() { return currentCharacter.characterName; }
+    public string GetCurrentPortrait() { return currentPortrait; }
+    public string GetCurrentExpression() { return currentExpression; }
 }

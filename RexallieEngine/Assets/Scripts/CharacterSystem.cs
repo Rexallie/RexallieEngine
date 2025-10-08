@@ -283,4 +283,45 @@ public class CharacterManager : MonoBehaviour
         }
         return new Vector3(xPos / 100f, 0f, 0f); // Example conversion
     }
+
+    // This method gathers the state of all active characters.
+    public List<CharacterSaveData> GetCharactersState()
+    {
+        List<CharacterSaveData> characterStates = new List<CharacterSaveData>();
+
+        foreach (var characterPair in activeCharacters)
+        {
+            if (characterPair.Value.gameObject.activeSelf) // Only save active characters
+            {
+                CharacterController controller = characterPair.Value;
+                characterStates.Add(new CharacterSaveData
+                {
+                    characterName = controller.GetCharacterName(),
+                    // You'll need to implement a way to get the string name of the position
+                    // For now, we'll save the exact UI position.
+                    anchoredPosition = controller.GetComponent<RectTransform>().anchoredPosition,
+                    portrait = controller.GetCurrentPortrait(),
+                    expression = controller.GetCurrentExpression()
+                });
+            }
+        }
+        return characterStates;
+    }
+
+    // This method restores the state of all characters from a save file.
+    public void RestoreState(List<CharacterSaveData> characterStates)
+    {
+        ClearAllCharacters();
+
+        foreach (var charData in characterStates)
+        {
+            // Use the ShowCharacter function to recreate the character
+            ShowCharacter(charData.characterName, "center", charData.portrait, charData.expression);
+            // Then, immediately set its exact saved position
+            if (activeCharacters.ContainsKey(charData.characterName.ToLower()))
+            {
+                activeCharacters[charData.characterName.ToLower()].GetComponent<RectTransform>().anchoredPosition = charData.anchoredPosition;
+            }
+        }
+    }
 }

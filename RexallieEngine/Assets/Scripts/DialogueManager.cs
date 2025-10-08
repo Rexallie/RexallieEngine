@@ -255,6 +255,8 @@ public class DialogueManager : MonoBehaviour
 
     private bool isProcessingNode = false; // To prevent concurrent advances
 
+    private string currentScriptName;
+
     void Awake()
     {
         if (Instance == null)
@@ -288,6 +290,8 @@ public class DialogueManager : MonoBehaviour
         fileName = System.IO.Path.GetFileNameWithoutExtension(fileName);
 
         TextAsset scriptAsset = Resources.Load<TextAsset>($"Dialogues/{language}/{fileName}");
+
+        currentScriptName = fileName; // Store the name for saving
 
         if (scriptAsset != null)
         {
@@ -369,5 +373,26 @@ public class DialogueManager : MonoBehaviour
     public bool IsDialogueActive()
     {
         return currentScript != null && currentNodeIndex < currentScript.nodes.Count;
+    }
+
+    // Add these new methods to the end of the class
+    public string GetCurrentScriptName()
+    {
+        return currentScriptName;
+    }
+
+    public int GetCurrentNodeIndex()
+    {
+        // We subtract 1 because AdvanceDialogue increments before processing.
+        // This ensures we save the node we are currently looking at.
+        return Mathf.Max(0, currentNodeIndex - 1);
+    }
+
+    public void RestoreState(string scriptName, int nodeIndex)
+    {
+        // The language is hardcoded to "en" for now, you might want to save this too!
+        LoadScriptFromFile("en", scriptName);
+        currentNodeIndex = nodeIndex;
+        AdvanceDialogue(); // Display the loaded line
     }
 }

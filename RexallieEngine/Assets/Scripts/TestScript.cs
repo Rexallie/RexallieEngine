@@ -1,6 +1,8 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.Windows;
 
 public class TestScript : MonoBehaviour
 {
@@ -9,6 +11,23 @@ public class TestScript : MonoBehaviour
     [SerializeField]
     private TextMeshProUGUI dialogueText;
 
+    [SerializeField]
+    private InputSystem_Actions inputActions;
+
+    private void Awake()
+    {
+        inputActions = new InputSystem_Actions();
+    }
+
+    private void OnEnable()
+    {
+        inputActions.Enable();
+    }
+
+    private void OnDisable()
+    {
+        inputActions.Disable();
+    }
 
     void Start()
     {
@@ -23,7 +42,20 @@ public class TestScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Debug.Log("Current Time Scale: " + Time.timeScale);
+        if (inputActions.UI.QuickSave.WasPressedThisFrame())
+        {
+            SaveManager.Instance.SaveGame(0); // Save to slot 0
+        }
+
+        if (inputActions.UI.QuickLoad.WasPressedThisFrame())
+        {
+            SaveManager.Instance.LoadGame(0); // Save to slot 0
+        }
+
+        if (inputActions.UI.Submit.WasPressedThisFrame())
+        {
+            DialogueManager.Instance.AdvanceDialogue();
+        }
     }
 
     private void DisplayDialogue(DialogueLine line)
@@ -37,7 +69,7 @@ public class TestScript : MonoBehaviour
         while (DialogueManager.Instance.IsDialogueActive())
         {
             yield return new WaitForSeconds(2f);
-            DialogueManager.Instance.AdvanceDialogue();
+            //DialogueManager.Instance.AdvanceDialogue();
         }
     }
 

@@ -26,7 +26,7 @@ cool now wait a sec and lets stop and fade it with another one
 
 @stopMusic fadeOut:1
 
-@hideCharacter Alice fadeOut:0.5 slideTo:right
+@hideCharacter Alice fadeOut:0.1 slideTo:right
 
 @wait 1
 
@@ -34,7 +34,7 @@ cool now wait a sec and lets stop and fade it with another one
 
 @wait 1
 
-@showCharacter Alice center fadeIn:0.2 slideFrom:right
+@showCharacter Alice center aya_base happy fadeIn:0.2 slideFrom:right
 
 Alice [base]:
 damn its gotten sad

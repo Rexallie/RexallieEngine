@@ -21,6 +21,8 @@ public class BackgroundManager : MonoBehaviour
 
     private Sprite currentBackground;
 
+    private string currentBackgroundName;
+
     void Awake()
     {
         if (Instance == null)
@@ -42,6 +44,8 @@ public class BackgroundManager : MonoBehaviour
             Debug.LogError($"Background not found: {backgroundName}");
             return;
         }
+
+        currentBackgroundName = backgroundName; // Store for saving
 
         switch (transition.ToLower())
         {
@@ -116,6 +120,20 @@ public class BackgroundManager : MonoBehaviour
         color.a = 0f;
         fadeImage.color = color;
         fadeImage.gameObject.SetActive(false);
+    }
+
+    // Add these new methods
+    public string GetCurrentBackgroundName()
+    {
+        return currentBackgroundName;
+    }
+
+    public void RestoreState(string backgroundName)
+    {
+        if (!string.IsNullOrEmpty(backgroundName))
+        {
+            SetBackground(backgroundName, "instant");
+        }
     }
 }
 
