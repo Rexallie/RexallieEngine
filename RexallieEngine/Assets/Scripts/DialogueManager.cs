@@ -292,6 +292,13 @@ public class DialogueManager : MonoBehaviour
         }
 
         DialogueNode node = currentScript.nodes[currentNodeIndex];
+
+        // If the node we are about to process is a dialogue line, record the current state.
+        if (node is DialogueLine)
+        {
+            HistoryManager.Instance.RecordState();
+        }
+
         currentNodeIndex++;
 
         if (node is DialogueLine dialogueLine)
@@ -376,11 +383,20 @@ public class DialogueManager : MonoBehaviour
 
     public string GetCurrentScriptName() { return currentScriptName; }
     public int GetCurrentNodeIndex() { return Mathf.Max(0, currentNodeIndex - 1); }
-    public void RestoreState(string scriptName, int nodeIndex)
+    public void RestoreState(string scriptName, int nodeIndex, bool advanceAfterRestore = true)
     {
         LoadScriptFromFile("en", scriptName);
         currentNodeIndex = nodeIndex;
-        AdvanceDialogue();
+
+        if (advanceAfterRestore)
+        {
+            AdvanceDialogue();
+        }
+        else
+        {
+            // If we're not advancing, we need to manually process the restored node just once.
+            StartCoroutine(ProcessCurrentNode());
+        }
     }
 
     public bool IsDialogueActive()

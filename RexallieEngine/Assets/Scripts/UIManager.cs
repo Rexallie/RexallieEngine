@@ -1,13 +1,17 @@
 ﻿using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
-using System.Collections; // Required for Coroutines
+using System.Collections;
+using UnityEngine.UI; // Required for Coroutines
 
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
 
     private InputSystem_Actions _playerInput;
+
+    [Header("Navigation Buttons")]
+    [SerializeField] private Button backButton;
 
     [Header("Dialogue UI")]
     [SerializeField] private TextMeshProUGUI speakerNameText;
@@ -63,6 +67,11 @@ public class UIManager : MonoBehaviour
         if (LocalizationManager.Instance != null)
         {
             LocalizationManager.Instance.OnLanguageChanged += HandleLanguageChange;
+        }
+
+        if (backButton != null)
+        {
+            backButton.onClick.AddListener(() => HistoryManager.Instance.Rollback());
         }
 
         DialogueManager.Instance.LoadScriptFromFile("en", "ui_test");

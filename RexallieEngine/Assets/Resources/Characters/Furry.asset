@@ -22,7 +22,7 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 027354c87dae34d4c972b2a531b62506, type: 3}
   expressions:
   - expressionName: base
-    sprite: {fileID: 21300000, guid: 260adbd758ec4b542b544e6800e83f66, type: 3}
+    sprite: {fileID: 21300000, guid: 798d8557cf9742841b87904b42137a66, type: 3}
   - expressionName: happy
     sprite: {fileID: 21300000, guid: a104758ad0ab8674d940c084c5a95f87, type: 3}
   voiceBlip: {fileID: 0}
