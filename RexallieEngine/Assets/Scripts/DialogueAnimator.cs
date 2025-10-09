@@ -65,9 +65,12 @@ public class DialogueAnimator : MonoBehaviour
         {
             textField.maxVisibleCharacters = i + 1;
 
-            float progress = (float)i / (totalVisibleCharacters - 1);
+            float progress = (totalVisibleCharacters > 1) ? (float)i / (totalVisibleCharacters - 1) : 1;
             float easedProgress = progress * progress;
             float currentSpeed = Mathf.Lerp(fastSpeed, slowSpeed, easedProgress);
+
+            // Ensure speed is not zero to avoid infinite wait
+            if (currentSpeed <= 0) currentSpeed = 0.001f;
 
             yield return new WaitForSeconds(1f / currentSpeed);
         }

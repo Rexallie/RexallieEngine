@@ -18,14 +18,6 @@ public class UIManager : MonoBehaviour
     [SerializeField]
     private InputSystem_Actions inputActions;
 
-    // A simple dictionary for translating character IDs to display names.
-    private Dictionary<string, string> characterNameLocalization = new Dictionary<string, string>
-    {
-        { "alice", "Alice" },
-        // To add Japanese:
-        // { "alice", "アリス" }, 
-    };
-
     // At the top of the UIManager class, add a reference to our new animator.
     [Header("Dialogue Animation")]
     [SerializeField] private DialogueAnimator dialogueAnimator;
@@ -89,22 +81,6 @@ public class UIManager : MonoBehaviour
 
         if (inputActions.UI.Submit.WasPressedThisFrame())
         {
-            DialogueManager.Instance.AdvanceDialogue();
-        }
-    }
-
-    // Add this new public method to handle the input logic.
-    public void OnAdvanceInput()
-    {
-        // If the text is currently being typed out...
-        if (dialogueAnimator != null && dialogueAnimator.IsAnimating)
-        {
-            // ...then instantly finish the animation and do nothing else.
-            dialogueAnimator.FinishAnimation();
-        }
-        else
-        {
-            // ...otherwise, advance the dialogue to the next node.
             DialogueManager.Instance.AdvanceDialogue();
         }
     }
