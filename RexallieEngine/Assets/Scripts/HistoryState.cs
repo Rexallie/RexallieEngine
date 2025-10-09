@@ -1,7 +1,9 @@
+/*
 using System.Collections.Generic;
 using UnityEngine;
 
 // This class holds a snapshot of the game state at a single point in time.
+
 [System.Serializable]
 public class HistoryState
 {
@@ -24,4 +26,4 @@ public class HistoryState
         activeCharacters = new List<CharacterSaveData>();
         variables = new List<VariableSaveData>();
     }
-}
+}*/

@@ -6,22 +6,34 @@ public class SceneEffectsManager : MonoBehaviour
     public static SceneEffectsManager Instance { get; private set; }
 
     [Header("References")]
-    [Tooltip("Assign the 'WorldContainer' RectTransform from your scene here.")]
     public RectTransform worldContainer;
 
     private Coroutine zoomCoroutine;
 
     void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        if (Instance == null) { Instance = this; } else { Destroy(gameObject); }
     }
+
+    // --- STATE MANAGEMENT ---
+
+    public SceneEffectsSaveData GetState()
+    {
+        return new SceneEffectsSaveData
+        {
+            worldContainerPosition = worldContainer.anchoredPosition,
+            worldContainerScale = worldContainer.localScale
+        };
+    }
+
+    public void RestoreState(SceneEffectsSaveData data)
+    {
+        // Instantly set the position and scale without animation
+        worldContainer.anchoredPosition = data.worldContainerPosition;
+        worldContainer.localScale = data.worldContainerScale;
+    }
+
+    // --- ANIMATIONS ---
 
     public void Zoom(Vector2 focusPoint, float percentage, float duration)
     {
@@ -34,14 +46,9 @@ public class SceneEffectsManager : MonoBehaviour
 
     private IEnumerator ZoomCoroutine(Vector2 focusPoint, float percentage, float duration)
     {
-        // Calculate target scale. 0% = scale 1, 100% = scale 2.
         float targetScale = 1.0f + (percentage / 100.0f);
-
-        // Calculate the target position to pan to. This moves the container
-        // in the opposite direction of the focus point, scaled by the zoom level.
         Vector2 targetPosition = -focusPoint * targetScale;
 
-        // If we are resetting, the targets are scale 1 and position zero.
         if (percentage == 0)
         {
             targetScale = 1f;
@@ -56,7 +63,7 @@ public class SceneEffectsManager : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float progress = Mathf.Clamp01(elapsed / duration);
-            float easedProgress = Easing.EaseOutQuad(progress); // Using our existing Easing script
+            float easedProgress = Easing.EaseOutQuad(progress);
 
             worldContainer.localScale = Vector3.Lerp(startScale, Vector3.one * targetScale, easedProgress);
             worldContainer.anchoredPosition = Vector2.Lerp(startPosition, targetPosition, easedProgress);
@@ -64,16 +71,12 @@ public class SceneEffectsManager : MonoBehaviour
             yield return null;
         }
 
-        // Snap to the final values to ensure accuracy
         worldContainer.localScale = Vector3.one * targetScale;
         worldContainer.anchoredPosition = targetPosition;
     }
 
-    // Add these methods to your SceneEffectsManager script
-
     public Coroutine Shake(float duration, float magnitude)
     {
-        // This public method starts the actual coroutine.
         return StartCoroutine(ShakeCoroutine(duration, magnitude));
     }
 
@@ -92,7 +95,6 @@ public class SceneEffectsManager : MonoBehaviour
             yield return null;
         }
 
-        // Reset the position at the end.
         worldContainer.anchoredPosition = originalPos;
     }
 }

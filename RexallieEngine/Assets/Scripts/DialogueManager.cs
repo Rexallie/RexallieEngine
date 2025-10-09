@@ -245,6 +245,8 @@ public class DialogueManager : MonoBehaviour
     public event Action OnDialogueEnded;
     public event Action<List<ChoiceOption>> OnChoicePresented;
 
+    // --- NEW: This flag prevents recording history during a restore operation ---
+    private bool isRestoringState = false;
     void Awake()
     {
         if (Instance == null)
@@ -255,6 +257,29 @@ public class DialogueManager : MonoBehaviour
         else
         {
             Destroy(gameObject);
+        }
+    }
+
+    void Start()
+    {
+        // --- THIS IS A KEY CHANGE ---
+        // We now subscribe a new method to this event to handle history recording.
+        OnDialogueLineDisplayed += OnDialogueLineWasDisplayed;
+    }
+
+    void OnDestroy()
+    {
+        OnDialogueLineDisplayed -= OnDialogueLineWasDisplayed;
+    }
+
+    // --- THIS IS THE NEW METHOD ---
+    // It is called automatically every time a dialogue line is shown to the player.
+    private void OnDialogueLineWasDisplayed(DialogueLine line)
+    {
+        // If we are not in the middle of restoring a state, record the current game state.
+        if (!isRestoringState)
+        {
+            HistoryManager.Instance.RecordState();
         }
     }
 
@@ -293,11 +318,12 @@ public class DialogueManager : MonoBehaviour
 
         DialogueNode node = currentScript.nodes[currentNodeIndex];
 
-        // If the node we are about to process is a dialogue line, record the current state.
-        if (node is DialogueLine)
+        /*
+        // Only record history if we are NOT in the middle of restoring a state.
+        if (node is DialogueLine && !isRestoringState)
         {
             HistoryManager.Instance.RecordState();
-        }
+        }*/
 
         currentNodeIndex++;
 
@@ -347,6 +373,8 @@ public class DialogueManager : MonoBehaviour
             }
         }
         isProcessingNode = false;
+        // Reset the flag after processing is done.
+        if (isRestoringState) isRestoringState = false;
     }
 
     public void MakeChoice(string targetLabel)
@@ -385,6 +413,8 @@ public class DialogueManager : MonoBehaviour
     public int GetCurrentNodeIndex() { return Mathf.Max(0, currentNodeIndex - 1); }
     public void RestoreState(string scriptName, int nodeIndex, bool advanceAfterRestore = true)
     {
+        isRestoringState = true; // Set the flag before restoring
+
         LoadScriptFromFile("en", scriptName);
         currentNodeIndex = nodeIndex;
 
@@ -394,7 +424,6 @@ public class DialogueManager : MonoBehaviour
         }
         else
         {
-            // If we're not advancing, we need to manually process the restored node just once.
             StartCoroutine(ProcessCurrentNode());
         }
     }

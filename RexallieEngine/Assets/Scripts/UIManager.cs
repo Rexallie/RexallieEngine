@@ -2,16 +2,13 @@
 using UnityEngine.InputSystem;
 using TMPro;
 using System.Collections;
-using UnityEngine.UI; // Required for Coroutines
+using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
-    public static UIManager Instance { get; private set; }
+    public static UIManager Instance { get; private set; } // Make sure this is a singleton
 
     private InputSystem_Actions _playerInput;
-
-    [Header("Navigation Buttons")]
-    [SerializeField] private Button backButton;
 
     [Header("Dialogue UI")]
     [SerializeField] private TextMeshProUGUI speakerNameText;
@@ -19,30 +16,20 @@ public class UIManager : MonoBehaviour
     [SerializeField] private DialogueAnimator dialogueAnimator;
 
     [Header("UI Animation Panels")]
-    [Tooltip("Assign the main DialoguePanel GameObject here.")]
     [SerializeField] private CanvasGroup dialoguePanelCanvasGroup;
     [SerializeField] private RectTransform dialoguePanelRect;
-
-    [Tooltip("Assign the SpeakerNamePanel GameObject here.")]
     [SerializeField] private CanvasGroup speakerNamePanelCanvasGroup;
     [SerializeField] private RectTransform speakerNamePanelRect;
-
-    [Tooltip("Assign the QuickMenuPanel GameObject here.")]
     [SerializeField] private CanvasGroup quickMenuPanelCanvasGroup;
     [SerializeField] private RectTransform quickMenuPanelRect;
 
+    [Header("Navigation Buttons")]
+    [SerializeField] private Button backButton;
+
     private void Awake()
     {
+        if (Instance == null) { Instance = this; } else { Destroy(gameObject); }
         _playerInput = new InputSystem_Actions();
-
-        if (Instance == null)
-        {
-            Instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
     }
 
     private void OnEnable()
@@ -69,9 +56,9 @@ public class UIManager : MonoBehaviour
             LocalizationManager.Instance.OnLanguageChanged += HandleLanguageChange;
         }
 
-        if (backButton != null)
+        if (backButton != null && HistoryManager.Instance != null)
         {
-            backButton.onClick.AddListener(() => HistoryManager.Instance.Rollback());
+            backButton.onClick.AddListener(HistoryManager.Instance.Rollback);
         }
 
         DialogueManager.Instance.LoadScriptFromFile("en", "ui_test");
@@ -125,7 +112,38 @@ public class UIManager : MonoBehaviour
         if (dialogueText != null) dialogueText.font = newFont;
     }
 
-    // --- NEW UI ANIMATION METHODS ---
+    public void ClearDialogueBox()
+    {
+        if (speakerNameText != null) speakerNameText.text = string.Empty;
+        if (dialogueText != null) dialogueText.text = string.Empty;
+
+        if (dialogueAnimator != null)
+        {
+            dialogueAnimator.Clear();
+        }
+    }
+
+    // --- STATE MANAGEMENT ---
+
+    public UISaveData GetState()
+    {
+        return new UISaveData
+        {
+            dialoguePanelVisible = dialoguePanelCanvasGroup.alpha > 0.5f,
+            speakerNamePanelVisible = speakerNamePanelCanvasGroup.alpha > 0.5f,
+            quickMenuPanelVisible = quickMenuPanelCanvasGroup.alpha > 0.5f
+        };
+    }
+
+    public void RestoreState(UISaveData data)
+    {
+        // Instantly set the visibility without animation
+        dialoguePanelCanvasGroup.alpha = data.dialoguePanelVisible ? 1f : 0f;
+        speakerNamePanelCanvasGroup.alpha = data.speakerNamePanelVisible ? 1f : 0f;
+        quickMenuPanelCanvasGroup.alpha = data.quickMenuPanelVisible ? 1f : 0f;
+    }
+
+    // --- UI ANIMATIONS ---
 
     public void ShowUI(float duration)
     {
@@ -139,26 +157,12 @@ public class UIManager : MonoBehaviour
         StartCoroutine(AnimateUIVisibility(false, duration));
     }
 
-    // Add this new public method inside your UIManager class
-    public void ClearDialogueBox()
-    {
-        if (speakerNameText != null) speakerNameText.text = string.Empty;
-        if (dialogueText != null) dialogueText.text = string.Empty;
-
-        if (dialogueAnimator != null)
-        {
-            dialogueAnimator.Clear();
-        }
-    }
-
     private IEnumerator AnimateUIVisibility(bool show, float duration)
     {
-        // Define animation targets
         float dialogueTargetY = -280f;
         float speakerTargetY = -118f;
         float offscreenYOffset = 300f;
 
-        // Set start/end values based on whether we are showing or hiding
         float dialogueStartY = show ? dialogueTargetY - offscreenYOffset : dialogueTargetY;
         float dialogueEndY = show ? dialogueTargetY : dialogueTargetY - offscreenYOffset;
 
@@ -181,24 +185,20 @@ public class UIManager : MonoBehaviour
             float progress = Mathf.Clamp01(elapsed / duration);
             float easedProgress = Easing.EaseOutQuad(progress);
 
-            // Animate Dialogue Panel
             dialoguePanelCanvasGroup.alpha = Mathf.Lerp(startAlpha, endAlpha, easedProgress);
             dialoguePanelRect.anchoredPosition = new Vector2(dialoguePanelRect.anchoredPosition.x, Mathf.Lerp(dialogueStartY, dialogueEndY, easedProgress));
             dialoguePanelRect.localScale = Vector3.one * Mathf.Lerp(startScaleDialogue, endScaleDialogue, easedProgress);
 
-            // Animate Speaker Name Panel
             speakerNamePanelCanvasGroup.alpha = Mathf.Lerp(startAlpha, endAlpha, easedProgress);
             speakerNamePanelRect.anchoredPosition = new Vector2(speakerNamePanelRect.anchoredPosition.x, Mathf.Lerp(speakerStartY, speakerEndY, easedProgress));
             speakerNamePanelRect.localScale = Vector3.one * Mathf.Lerp(startScaleDialogue, endScaleDialogue, easedProgress);
 
-            // Animate Quick Menu Buttons
             quickMenuPanelCanvasGroup.alpha = Mathf.Lerp(startAlpha, endAlpha, easedProgress);
             quickMenuPanelRect.localScale = Vector3.one * Mathf.Lerp(startScaleButtons, endScaleButtons, easedProgress);
 
             yield return null;
         }
 
-        // Snap to final values to ensure accuracy
         dialoguePanelCanvasGroup.alpha = endAlpha;
         dialoguePanelRect.anchoredPosition = new Vector2(dialoguePanelRect.anchoredPosition.x, dialogueEndY);
         dialoguePanelRect.localScale = Vector3.one * endScaleDialogue;

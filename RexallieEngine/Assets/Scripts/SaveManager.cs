@@ -5,15 +5,12 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    // We'll use a simple slot system, you can save to different files.
-    private int currentSlot = 0;
-
     void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject); // Keep the manager alive between scenes
+            DontDestroyOnLoad(gameObject);
         }
         else
         {
@@ -23,16 +20,10 @@ public class SaveManager : MonoBehaviour
 
     public void SaveGame(int slotNumber)
     {
-        currentSlot = slotNumber;
-        SaveData data = new SaveData();
+        // Use the comprehensive HistoryState as our save data format.
+        HistoryState data = GatherCurrentState();
 
-        // 1. Gather all the data from the other managers
-        data = GatherSaveData();
-
-        // 2. Convert the data to a JSON string
-        string json = JsonUtility.ToJson(data, true); // The 'true' formats it nicely
-
-        // 3. Write the JSON string to a file
+        string json = JsonUtility.ToJson(data, true);
         File.WriteAllText(GetSaveFilePath(slotNumber), json);
 
         Debug.Log($"Game Saved to slot {slotNumber}");
@@ -44,13 +35,9 @@ public class SaveManager : MonoBehaviour
 
         if (File.Exists(path))
         {
-            // 1. Read the JSON from the file
             string json = File.ReadAllText(path);
+            HistoryState data = JsonUtility.FromJson<HistoryState>(json);
 
-            // 2. Convert the JSON back to a SaveData object
-            SaveData data = JsonUtility.FromJson<SaveData>(json);
-
-            // 3. Restore the game state using the loaded data
             RestoreGameState(data);
 
             Debug.Log($"Game Loaded from slot {slotNumber}");
@@ -61,78 +48,39 @@ public class SaveManager : MonoBehaviour
         }
     }
 
-    private SaveData GatherSaveData()
+    private HistoryState GatherCurrentState()
     {
-        SaveData data = new SaveData();
+        HistoryState data = new HistoryState();
 
-        // Get Dialogue State
-        if (DialogueManager.Instance != null)
-        {
-            data.currentScriptName = DialogueManager.Instance.GetCurrentScriptName();
-            data.currentNodeIndex = DialogueManager.Instance.GetCurrentNodeIndex();
-        }
-
-        // Get Character State
-        if (CharacterManager.Instance != null)
-        {
-            data.activeCharacters = CharacterManager.Instance.GetCharactersState();
-        }
-
-        // Get Background State
-        if (BackgroundManager.Instance != null)
-        {
-            data.currentBackgroundName = BackgroundManager.Instance.GetCurrentBackgroundName();
-        }
-
-        // Get Audio State
-        if (AudioManager.Instance != null)
-        {
-            data.currentMusicTrackName = AudioManager.Instance.GetCurrentMusicTrack();
-        }
-
-        // Get Variable State
-        if (VariableManager.Instance != null)
-        {
-            data.variables = VariableManager.Instance.GetVariableData();
-        }
+        // Gather data from all managers, just like HistoryManager does.
+        data.currentScriptName = DialogueManager.Instance.GetCurrentScriptName();
+        data.currentNodeIndex = DialogueManager.Instance.GetCurrentNodeIndex();
+        data.activeCharacters = CharacterManager.Instance.GetCharactersState();
+        data.currentBackgroundName = BackgroundManager.Instance.GetCurrentBackgroundName();
+        data.currentMusicTrackName = AudioManager.Instance.GetCurrentMusicTrack();
+        data.variables = VariableManager.Instance.GetVariableData();
+        data.sceneEffectsState = SceneEffectsManager.Instance.GetState();
+        data.uiState = UIManager.Instance.GetState();
 
         return data;
     }
 
-    private void RestoreGameState(SaveData data)
+    private void RestoreGameState(HistoryState data)
     {
-        // Restore managers in a logical order (e.g., background first, then characters)
+        // Restore all managers to the saved state.
+        SceneEffectsManager.Instance.RestoreState(data.sceneEffectsState);
+        UIManager.Instance.RestoreState(data.uiState);
+        BackgroundManager.Instance.RestoreState(data.currentBackgroundName);
+        CharacterManager.Instance.RestoreState(data.activeCharacters);
+        AudioManager.Instance.RestoreState(data.currentMusicTrackName);
+        VariableManager.Instance.RestoreVariableData(data.variables);
 
-        if (VariableManager.Instance != null)
-        {
-            VariableManager.Instance.RestoreVariableData(data.variables);
-        }
-
-        if (BackgroundManager.Instance != null)
-        {
-            BackgroundManager.Instance.RestoreState(data.currentBackgroundName);
-        }
-
-        if (CharacterManager.Instance != null)
-        {
-            CharacterManager.Instance.RestoreState(data.activeCharacters);
-        }
-
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.RestoreState(data.currentMusicTrackName);
-        }
-
-        // IMPORTANT: Restore DialogueManager last, as it will trigger the UI update for the loaded line.
-        if (DialogueManager.Instance != null)
-        {
-            DialogueManager.Instance.RestoreState(data.currentScriptName, data.currentNodeIndex);
-        }
+        // Restore DialogueManager last. The 'true' flag tells it to auto-advance to the loaded line.
+        DialogueManager.Instance.RestoreState(data.currentScriptName, data.currentNodeIndex, true);
     }
 
     private string GetSaveFilePath(int slotNumber)
     {
-        // Application.persistentDataPath is a safe, writable directory on any platform
         return Path.Combine(Application.persistentDataPath, $"savegame_{slotNumber}.json");
     }
 }
