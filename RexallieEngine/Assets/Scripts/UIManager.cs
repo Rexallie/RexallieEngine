@@ -26,6 +26,10 @@ public class UIManager : MonoBehaviour
         // { "alice", "アリス" }, 
     };
 
+    // At the top of the UIManager class, add a reference to our new animator.
+    [Header("Dialogue Animation")]
+    [SerializeField] private DialogueAnimator dialogueAnimator;
+
     private void Awake()
     {
         inputActions = new InputSystem_Actions();
@@ -44,11 +48,30 @@ public class UIManager : MonoBehaviour
     void Start()
     {
         DialogueManager.Instance.OnDialogueLineDisplayed += DisplayDialogue;
+        LocalizationManager.Instance.OnLanguageChanged += HandleLanguageChange;
 
         DialogueManager.Instance.LoadScriptFromFile("en", "chapter1_scene1");
         DialogueManager.Instance.AdvanceDialogue();
 
         StartCoroutine(TestCoroutine());
+
+        LocalizationManager.Instance.LoadLanguage("en");
+        // In the same button click event, after loading the new text:
+        // Replace the obsolete FindObjectOfType with FindFirstObjectByType
+        Object.FindFirstObjectByType<UIManager>().BroadcastMessage("UpdateText", SendMessageOptions.DontRequireReceiver);
+    }
+
+    void OnDestroy()
+    {
+        // It's good practice to unsubscribe when the object is destroyed.
+        if (DialogueManager.Instance != null)
+        {
+            DialogueManager.Instance.OnDialogueLineDisplayed -= DisplayDialogue;
+        }
+        if (LocalizationManager.Instance != null)
+        {
+            LocalizationManager.Instance.OnLanguageChanged -= HandleLanguageChange; // <-- ADD THIS
+        }
     }
 
     // Update is called once per frame
@@ -70,17 +93,30 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    // This is the new method that will handle the font change event.
+    private void HandleLanguageChange(TMP_FontAsset newFont)
+    {
+        if (speakerNameText != null) speakerNameText.font = newFont;
+        if (dialogueText != null) dialogueText.font = newFont;
+    }
+
     private void DisplayDialogue(DialogueLine line)
     {
-        // Look up the display name using the speakerID.
-        string displayName = line.speakerID;
-        if (characterNameLocalization.ContainsKey(line.speakerID.ToLower()))
-        {
-            displayName = characterNameLocalization[line.speakerID.ToLower()];
-        }
+        string nameKey = $"character_{line.speakerID.ToLower()}_name";
+        string displayName = LocalizationManager.Instance.GetLocalizedValue(nameKey);
 
-        speakerNameText.text = displayName; // Set the nameplate text
-        dialogueText.text = line.text;
+        speakerNameText.text = displayName;
+
+        // Instead of setting text directly, tell the animator to show it.
+        if (dialogueAnimator != null)
+        {
+            dialogueAnimator.ShowText(line.text);
+        }
+        else
+        {
+            // Fallback to instant text if no animator is assigned.
+            dialogueText.text = line.text;
+        }
     }
 
     private IEnumerator TestCoroutine()

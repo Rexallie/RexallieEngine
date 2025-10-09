@@ -1,0 +1,14 @@
+{
+  "items": [
+    { "key": "character_alice_name", "value": "爱丽丝" },
+    { "key": "ui_preferences", "value": "偏好" },
+    { "key": "ui_main_menu", "value": "主菜单" },
+    { "key": "ui_quick_load", "value": "快速加载" },
+    { "key": "ui_quick_save", "value": "快速保存" },
+    { "key": "ui_save", "value": "保存" },
+    { "key": "ui_auto", "value": "自动" },
+    { "key": "ui_skip", "value": "跳过" },
+    { "key": "ui_history", "value": "历史" },
+    { "key": "ui_back", "value": "返回" }
+  ]
+}

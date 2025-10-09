@@ -1,0 +1,14 @@
+{
+  "items": [
+    { "key": "character_alice_name", "value": "Alice" },
+    { "key": "ui_preferences", "value": "Preferences" },
+    { "key": "ui_main_menu", "value": "Main Menu" },
+    { "key": "ui_quick_load", "value": "Quick Load" },
+    { "key": "ui_quick_save", "value": "Quick Save" },
+    { "key": "ui_save", "value": "Save" },
+    { "key": "ui_auto", "value": "Auto" },
+    { "key": "ui_skip", "value": "Skip" },
+    { "key": "ui_history", "value": "History" },
+    { "key": "ui_back", "value": "Back" }
+  ]
+}

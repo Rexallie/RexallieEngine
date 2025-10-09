@@ -1,0 +1,14 @@
+{
+  "items": [
+    { "key": "character_alice_name", "value": "アリス" },
+    { "key": "ui_preferences", "value": "設定" },
+    { "key": "ui_main_menu", "value": "メインメニュー" },
+    { "key": "ui_quick_load", "value": "クイックロード" },
+    { "key": "ui_quick_save", "value": "クイックセーブ" },
+    { "key": "ui_save", "value": "保存" },
+    { "key": "ui_auto", "value": "自動" },
+    { "key": "ui_skip", "value": "スキップ" },
+    { "key": "ui_history", "value": "履歴" },
+    { "key": "ui_back", "value": "戻る" }
+  ]
+}

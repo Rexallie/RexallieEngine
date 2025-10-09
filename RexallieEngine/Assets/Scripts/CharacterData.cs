@@ -29,7 +29,7 @@ public class CharacterData : ScriptableObject
         if (portrait != null)
             return portrait.sprite;
 
-        Debug.LogWarning($"Portrait not found: {portraitName} for character {characterName} (this can also appear if you're using a portrait name that is different from the sprite name)");
+        Debug.LogWarning($"Portrait not found: {portraitName} for character {characterName}");
         return null;
     }
 
@@ -40,7 +40,7 @@ public class CharacterData : ScriptableObject
         if (expression != null)
             return expression.sprite;
 
-        Debug.LogWarning($"Expression not found: {expressionName} for character {characterName} (this can also appear if you're using an expression name that is different from the sprite name)");
+        Debug.LogWarning($"Expression not found: {expressionName} for character {characterName}");
         return null;
     }
 
