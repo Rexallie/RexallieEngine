@@ -2028,6 +2028,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterManager
   availableCharacters:
   - {fileID: 11400000, guid: 51c9fdc846d3a1e4ca2aa6a42f2ed431, type: 2}
+  - {fileID: 11400000, guid: a74a14a05b524324d869210003ca4b16, type: 2}
+  - {fileID: 11400000, guid: 767a23c24ead39b459984360f33e9b73, type: 2}
   characterContainer: {fileID: 735838353}
   characterPrefab: {fileID: 171285223919345714, guid: 95fe5839332e02d4182792e8d5fa6637, type: 3}
   leftPositionX: -600

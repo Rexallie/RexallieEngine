@@ -66,6 +66,7 @@ MonoBehaviour:
   expressionRenderer: {fileID: 0}
   moveSpeed: 2
   fadeSpeed: 1
+  dimColor: {r: 0.3137255, g: 0.3137255, b: 0.3137255, a: 1}
 --- !u!225 &6289338076773760833
 CanvasGroup:
   m_ObjectHideFlags: 0

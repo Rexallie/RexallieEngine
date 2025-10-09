@@ -1,26 +1,33 @@
 # Scene starts with no UI
+@clearDialogue
+
 @hideUI time:0
 
-@setBackground campus fade
+@setBackground campus instant
 
 # A character appears, then the UI fades in for dialogue.
-@showCharacter alice center
+@showCharacter furry left base base fadeIn:1.0 slideFrom:farLeft
 
 @showUI time:0.2
 
-alice [base]:
-Now you can see what I'm saying.
+furry [base]:
+girl eating noodle
+
+@showCharacter nikita right base base fadeIn:1.0 slideFrom:farRight
 
 # Hide the UI for a cinematic moment.
 @hideUI time:0.2
 
-@zoom x:-200 y:0 percentage:50 time:2.0
-
-@wait 2
+@zoom x:-300 y:0 percentage:80 time:0.8
 
 @clearDialogue
 
-@showUI time:0.6
+@shake 0.2 10
 
-alice [base]:
-what!!!
+@showUI time:0.3
+
+nikita [base]:
+bitch you eating my <size=150%>NOODLES<size=100%>!
+
+furry [base]:
+anna ou

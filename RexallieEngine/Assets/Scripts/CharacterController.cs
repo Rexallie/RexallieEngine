@@ -1,12 +1,13 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class CharacterController : MonoBehaviour
 {
     [Header("References - UI Mode")]
-    public UnityEngine.UI.Image portraitImage;
-    public UnityEngine.UI.Image expressionImage;
+    public Image portraitImage;
+    public Image expressionImage;
 
     [Header("References - Sprite Mode (Optional)")]
     public SpriteRenderer portraitRenderer;
@@ -16,11 +17,18 @@ public class CharacterController : MonoBehaviour
     public float moveSpeed = 2f;
     public float fadeSpeed = 1f;
 
+    [Header("Highlight Settings")]
+    [Tooltip("The color tint to apply to the character when they are not speaking.")]
+    [SerializeField] private Color dimColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+    [Tooltip("The duration of the highlight/dim animation in seconds.")]
+    [SerializeField] private float highlightFadeDuration = 0.25f;
+
     private CharacterData currentCharacter;
     private string currentPortrait;
     private string currentExpression;
     private CanvasGroup canvasGroup;
     private bool useUIMode;
+    private Coroutine highlightCoroutine;
 
     void Awake()
     {
@@ -53,6 +61,53 @@ public class CharacterController : MonoBehaviour
         {
             DialogueManager.Instance.OnDialogueLineDisplayed += UpdateCharacter;
         }
+    }
+
+    void OnDestroy()
+    {
+        if (DialogueManager.Instance != null)
+        {
+            DialogueManager.Instance.OnDialogueLineDisplayed -= UpdateCharacter;
+        }
+    }
+
+    public void SetHighlightState(bool isHighlighted)
+    {
+        if (highlightCoroutine != null)
+        {
+            StopCoroutine(highlightCoroutine);
+        }
+        highlightCoroutine = StartCoroutine(AnimateHighlight(isHighlighted));
+    }
+
+    private IEnumerator AnimateHighlight(bool isHighlighted)
+    {
+        Color targetColor = isHighlighted ? Color.white : dimColor;
+
+        Color startPortraitColor = portraitImage != null ? portraitImage.color : Color.clear;
+        Color startExpressionColor = expressionImage != null ? expressionImage.color : Color.clear;
+
+        float elapsed = 0f;
+        while (elapsed < highlightFadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = Mathf.Clamp01(elapsed / highlightFadeDuration);
+            float easedProgress = Easing.EaseOutQuad(progress);
+
+            if (portraitImage != null)
+            {
+                portraitImage.color = Color.Lerp(startPortraitColor, targetColor, easedProgress);
+            }
+            if (expressionImage != null)
+            {
+                expressionImage.color = Color.Lerp(startExpressionColor, targetColor, easedProgress);
+            }
+
+            yield return null;
+        }
+
+        if (portraitImage != null) portraitImage.color = targetColor;
+        if (expressionImage != null) expressionImage.color = targetColor;
     }
 
     public void SetCharacter(CharacterData character, string portrait, string expression)
@@ -105,9 +160,6 @@ public class CharacterController : MonoBehaviour
         }
     }
 
-    // ==================== POSITIONING ====================
-
-    // RESTORED: For non-UI world space positioning
     public void SetPosition(Vector3 position, bool instant = false)
     {
         if (instant)
@@ -121,9 +173,10 @@ public class CharacterController : MonoBehaviour
         }
     }
 
-    // RESTORED: Coroutine for non-UI world space movement
     private IEnumerator MoveToPosition(Vector3 targetPosition)
     {
+        // Note: This is a simple linear move for world-space objects.
+        // Easing could be added here similarly to MoveToUIPositionCoroutine if needed.
         while (Vector3.Distance(transform.position, targetPosition) > 0.01f)
         {
             transform.position = Vector3.Lerp(transform.position, targetPosition, moveSpeed * Time.deltaTime);
@@ -132,7 +185,6 @@ public class CharacterController : MonoBehaviour
         transform.position = targetPosition;
     }
 
-    // For UI positioning
     public void SetUIPosition(Vector2 anchoredPosition, bool instant = false)
     {
         RectTransform rectTransform = GetComponent<RectTransform>();
@@ -151,7 +203,7 @@ public class CharacterController : MonoBehaviour
 
     private void UpdateCharacter(DialogueLine line)
     {
-        if (line.speakerID != null && currentCharacter != null && line.speakerID.ToLower() == currentCharacter.characterName.ToLower())
+        if (line.speakerID != null && currentCharacter != null && line.speakerID.ToLower() == currentCharacter.characterID.ToLower())
         {
             if (!string.IsNullOrEmpty(line.portrait) && line.portrait.ToLower() != currentPortrait.ToLower())
             {
@@ -166,6 +218,7 @@ public class CharacterController : MonoBehaviour
 
     private IEnumerator MoveToUIPosition(Vector2 targetPosition)
     {
+        // This is a simple linear move. The timed coroutine below is used for VNS commands.
         RectTransform rectTransform = GetComponent<RectTransform>();
         if (rectTransform == null) yield break;
 
@@ -188,22 +241,17 @@ public class CharacterController : MonoBehaviour
 
         while (elapsed < duration)
         {
-            // ... inside the while loop
             elapsed = Time.time - startTime;
-            float linearProgress = Mathf.Clamp01(elapsed / duration);
-
-            // Apply the easing function
-            float easedProgress = Easing.EaseOutQuad(linearProgress);
+            float progress = Mathf.Clamp01(elapsed / duration);
+            // --- EASING APPLIED ---
+            float easedProgress = Easing.EaseOutQuad(progress);
 
             rectTransform.anchoredPosition = Vector2.Lerp(startPosition, targetPosition, easedProgress);
             yield return null;
-            // ...
         }
 
         rectTransform.anchoredPosition = targetPosition;
     }
-
-    // ==================== ANIMATIONS & VISIBILITY ====================
 
     public IEnumerator AnimateAppearance(bool isShowing, float fadeDuration, float moveDuration, Vector2 moveTargetPosition)
     {
@@ -228,19 +276,14 @@ public class CharacterController : MonoBehaviour
 
         while (elapsed < maxDuration)
         {
-            // ... inside the while loop
             elapsed = Time.time - startTime;
-
-            // Calculate the linear progress first
-            float linearProgress = Mathf.Clamp01(elapsed / maxDuration);
-
-            // Now, apply the easing function to get a curved progress
-            float easedProgress = Easing.EaseOutQuad(linearProgress);
+            float progress = Mathf.Clamp01(elapsed / maxDuration);
+            // --- EASING APPLIED ---
+            float easedProgress = Easing.EaseOutQuad(progress);
 
             if (fadeDuration > 0)
             {
                 float fadeProgress = Mathf.Clamp01(elapsed / fadeDuration);
-                // Note: We could ease fade and move separately, but for simplicity we'll ease them together.
                 SetAlpha(Mathf.Lerp(startAlpha, endAlpha, easedProgress));
             }
 
@@ -251,7 +294,6 @@ public class CharacterController : MonoBehaviour
             }
 
             yield return null;
-            // ...
         }
 
         SetAlpha(endAlpha);
@@ -262,7 +304,7 @@ public class CharacterController : MonoBehaviour
 
         if (!isShowing)
         {
-            //gameObject.SetActive(false);
+            gameObject.SetActive(false);
         }
     }
 
@@ -289,28 +331,15 @@ public class CharacterController : MonoBehaviour
 
     private void SetAlpha(float alpha)
     {
-        if (useUIMode)
+        if (canvasGroup != null)
         {
-            if (canvasGroup != null)
-            {
-                canvasGroup.alpha = alpha;
-            }
-            else
-            {
-                if (portraitImage != null) { Color c = portraitImage.color; c.a = alpha; portraitImage.color = c; }
-                if (expressionImage != null) { Color c = expressionImage.color; c.a = alpha; expressionImage.color = c; }
-            }
-        }
-        else
-        {
-            if (portraitRenderer != null) { Color c = portraitRenderer.color; c.a = alpha; portraitRenderer.color = c; }
-            if (expressionRenderer != null) { Color c = expressionRenderer.color; c.a = alpha; expressionRenderer.color = c; }
+            canvasGroup.alpha = alpha;
         }
     }
 
     private IEnumerator FadeToAlpha(float targetAlpha, Action onComplete = null)
     {
-        float startAlpha = canvasGroup != null ? canvasGroup.alpha : (useUIMode && portraitImage != null ? portraitImage.color.a : (portraitRenderer != null ? portraitRenderer.color.a : 0f));
+        float startAlpha = canvasGroup.alpha;
         float startTime = Time.time;
         float duration = 1f / fadeSpeed;
         float elapsed = 0f;
@@ -319,7 +348,9 @@ public class CharacterController : MonoBehaviour
         {
             elapsed = Time.time - startTime;
             float progress = Mathf.Clamp01(elapsed / duration);
-            float alpha = Mathf.Lerp(startAlpha, targetAlpha, progress);
+            // --- EASING APPLIED ---
+            float easedProgress = Easing.EaseOutQuad(progress);
+            float alpha = Mathf.Lerp(startAlpha, targetAlpha, easedProgress);
             SetAlpha(alpha);
             yield return null;
         }
@@ -328,7 +359,7 @@ public class CharacterController : MonoBehaviour
         onComplete?.Invoke();
     }
 
-    public string GetCharacterName() { return currentCharacter.characterName; }
+    public string GetCharacterName() { return currentCharacter.characterID; }
     public string GetCurrentPortrait() { return currentPortrait; }
     public string GetCurrentExpression() { return currentExpression; }
 }
