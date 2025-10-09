@@ -113,6 +113,9 @@ public class ActionExecutor : MonoBehaviour
             case "fade":
                 StartCoroutine(ExecuteFade(action));
                 break;
+            case "zoom":
+                StartCoroutine(ExecuteZoom(action));
+                break;
 
             default:
                 Debug.LogWarning($"Unknown action: {action.action}");
@@ -397,6 +400,38 @@ public class ActionExecutor : MonoBehaviour
 
         isExecutingAction = true;
         yield return new WaitForSeconds(duration);
+        isExecutingAction = false;
+    }
+
+    private IEnumerator ExecuteZoom(ActionNode action)
+    {
+        // Check if it's a reset command first
+        if (action.parameters.ContainsKey("param1") && action.parameters["param1"].ToLower() == "reset")
+        {
+            isExecutingAction = true;
+
+            // Get the current duration if specified, otherwise default to 1 second for the reset
+            float duration = float.Parse(action.parameters.GetValueOrDefault("time", "1.0"), System.Globalization.CultureInfo.InvariantCulture);
+
+            SceneEffectsManager.Instance.Zoom(Vector2.zero, 0, duration);
+            yield return new WaitForSeconds(duration);
+
+            isExecutingAction = false;
+            yield break;
+        }
+
+        // Parse the parameters for a normal zoom
+        float x = float.Parse(action.parameters.GetValueOrDefault("x", "0"), System.Globalization.CultureInfo.InvariantCulture);
+        float y = float.Parse(action.parameters.GetValueOrDefault("y", "0"), System.Globalization.CultureInfo.InvariantCulture);
+        float percentage = float.Parse(action.parameters.GetValueOrDefault("percentage", "0"), System.Globalization.CultureInfo.InvariantCulture);
+        float time = float.Parse(action.parameters.GetValueOrDefault("time", "1.0"), System.Globalization.CultureInfo.InvariantCulture);
+
+        // Tell the DialogueManager to wait for this animation
+        isExecutingAction = true;
+
+        SceneEffectsManager.Instance.Zoom(new Vector2(x, y), percentage, time);
+        yield return new WaitForSeconds(time);
+
         isExecutingAction = false;
     }
 
