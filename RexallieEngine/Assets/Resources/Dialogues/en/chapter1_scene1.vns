@@ -6,8 +6,8 @@ start:
     @showCharacter Alice left casual base
 
     Alice [base]:
-    Who should I talk to?
-    I need help.
+    This is <s>me</s> <sup>tes</sup><sub>ting</sub> <cspace=1em>rich</cspace> <b>text</i> <alpha=#44>formats<alpha=#FF> <i>queen</i> <voffset=1em>word</voffset> <rotate="-15">clock</rotate> it <sprite=0>
+    I need <size=150%>help<size=100%>.
 
     @choice
         "Talk to Bob." -> talk_to_bob

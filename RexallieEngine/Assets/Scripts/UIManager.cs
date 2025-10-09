@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Windows;
 
-public class TestScript : MonoBehaviour
+public class UIManager : MonoBehaviour
 {
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
@@ -13,7 +13,7 @@ public class TestScript : MonoBehaviour
     private TextMeshProUGUI dialogueText;
 
     [SerializeField]
-    private TextMeshProUGUI speakerNameText; // <-- ADD a reference for the speaker's nameplate
+    private TextMeshProUGUI speakerNameText;
 
     [SerializeField]
     private InputSystem_Actions inputActions;
