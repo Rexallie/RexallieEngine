@@ -368,27 +368,24 @@ public class ActionExecutor : MonoBehaviour
 
     private IEnumerator ExecuteShake(ActionNode action)
     {
-        // @shake intensity:0.5 duration:0.3
-        float intensity = float.Parse(action.parameters.GetValueOrDefault("intensity", "0.5"));
-        float duration = float.Parse(action.parameters.GetValueOrDefault("duration", "0.3"));
+        // @shake 0.5 10.0
+        float duration = float.Parse(action.parameters.GetValueOrDefault("param1", "0.5f"), System.Globalization.CultureInfo.InvariantCulture);
+        // Note: A larger magnitude (e.g., 10-20) works well for UI shakes.
+        float magnitude = float.Parse(action.parameters.GetValueOrDefault("param2", "15f"), System.Globalization.CultureInfo.InvariantCulture);
 
         isExecutingAction = true;
-        Camera mainCamera = Camera.main;
-        Vector3 originalPosition = mainCamera.transform.position;
-        float elapsed = 0f;
 
-        while (elapsed < duration)
+        // Call the new shake coroutine on the SceneEffectsManager.
+        if (SceneEffectsManager.Instance != null)
         {
-            float x = Random.Range(-1f, 1f) * intensity;
-            float y = Random.Range(-1f, 1f) * intensity;
-
-            mainCamera.transform.position = originalPosition + new Vector3(x, y, 0);
-
-            elapsed += Time.deltaTime;
-            yield return null;
+            yield return SceneEffectsManager.Instance.Shake(duration, magnitude);
+        }
+        else
+        {
+            Debug.LogWarning("SceneEffectsManager not found in scene. Cannot execute shake.");
+            yield return new WaitForSeconds(duration); // Still wait for the specified duration
         }
 
-        mainCamera.transform.position = originalPosition;
         isExecutingAction = false;
     }
 

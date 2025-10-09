@@ -93,6 +93,22 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    // Add this new public method to handle the input logic.
+    public void OnAdvanceInput()
+    {
+        // If the text is currently being typed out...
+        if (dialogueAnimator != null && dialogueAnimator.IsAnimating)
+        {
+            // ...then instantly finish the animation and do nothing else.
+            dialogueAnimator.FinishAnimation();
+        }
+        else
+        {
+            // ...otherwise, advance the dialogue to the next node.
+            DialogueManager.Instance.AdvanceDialogue();
+        }
+    }
+
     // This is the new method that will handle the font change event.
     private void HandleLanguageChange(TMP_FontAsset newFont)
     {

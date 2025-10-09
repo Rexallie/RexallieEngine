@@ -68,4 +68,31 @@ public class SceneEffectsManager : MonoBehaviour
         worldContainer.localScale = Vector3.one * targetScale;
         worldContainer.anchoredPosition = targetPosition;
     }
+
+    // Add these methods to your SceneEffectsManager script
+
+    public Coroutine Shake(float duration, float magnitude)
+    {
+        // This public method starts the actual coroutine.
+        return StartCoroutine(ShakeCoroutine(duration, magnitude));
+    }
+
+    private IEnumerator ShakeCoroutine(float duration, float magnitude)
+    {
+        Vector2 originalPos = worldContainer.anchoredPosition;
+        float elapsed = 0.0f;
+
+        while (elapsed < duration)
+        {
+            float x = Random.Range(-1f, 1f) * magnitude;
+            float y = Random.Range(-1f, 1f) * magnitude;
+
+            worldContainer.anchoredPosition = new Vector2(originalPos.x + x, originalPos.y + y);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // Reset the position at the end.
+        worldContainer.anchoredPosition = originalPos;
+    }
 }

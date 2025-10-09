@@ -14,7 +14,11 @@ start:
     microintervals of dawn is the new new new new new new thing to stalk about and like what!
     Ok you're crazy but htis is 5 lines so it must be okay to type that much in a setnence.
 
+    @shake 1 8
+
     @zoom x:-200 y:0 percentage:50 time:2.0
+
+    @hideCharacter Alice fadeOut:0.1
 
     Alice [base]:
     This is <s>me</s> <sup>tes</sup><sub>ting</sub> <cspace=1em>rich</cspace> <b>text</i> <alpha=#44>formats<alpha=#FF> <i>queen</i> <voffset=1em>word</voffset> <rotate="-15">clock</rotate> it <sprite=0>
