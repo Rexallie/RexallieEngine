@@ -1,0 +1,26 @@
+# Scene starts with no UI
+@hideUI time:0
+
+@setBackground campus fade
+
+# A character appears, then the UI fades in for dialogue.
+@showCharacter alice center
+
+@showUI time:0.2
+
+alice [base]:
+Now you can see what I'm saying.
+
+# Hide the UI for a cinematic moment.
+@hideUI time:0.2
+
+@zoom x:-200 y:0 percentage:50 time:2.0
+
+@wait 2
+
+@clearDialogue
+
+@showUI time:0.6
+
+alice [base]:
+what!!!

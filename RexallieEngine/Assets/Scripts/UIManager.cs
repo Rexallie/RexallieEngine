@@ -1,95 +1,96 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using TMPro;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Windows;
+using TMPro;
+using System.Collections; // Required for Coroutines
 
 public class UIManager : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    public static UIManager Instance { get; private set; }
 
-    [SerializeField]
-    private TextMeshProUGUI dialogueText;
+    private InputSystem_Actions _playerInput;
 
-    [SerializeField]
-    private TextMeshProUGUI speakerNameText;
-
-    [SerializeField]
-    private InputSystem_Actions inputActions;
-
-    // At the top of the UIManager class, add a reference to our new animator.
-    [Header("Dialogue Animation")]
+    [Header("Dialogue UI")]
+    [SerializeField] private TextMeshProUGUI speakerNameText;
+    [SerializeField] private TextMeshProUGUI dialogueText;
     [SerializeField] private DialogueAnimator dialogueAnimator;
+
+    [Header("UI Animation Panels")]
+    [Tooltip("Assign the main DialoguePanel GameObject here.")]
+    [SerializeField] private CanvasGroup dialoguePanelCanvasGroup;
+    [SerializeField] private RectTransform dialoguePanelRect;
+
+    [Tooltip("Assign the SpeakerNamePanel GameObject here.")]
+    [SerializeField] private CanvasGroup speakerNamePanelCanvasGroup;
+    [SerializeField] private RectTransform speakerNamePanelRect;
+
+    [Tooltip("Assign the QuickMenuPanel GameObject here.")]
+    [SerializeField] private CanvasGroup quickMenuPanelCanvasGroup;
+    [SerializeField] private RectTransform quickMenuPanelRect;
 
     private void Awake()
     {
-        inputActions = new InputSystem_Actions();
+        _playerInput = new InputSystem_Actions();
+
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 
     private void OnEnable()
     {
-        inputActions.Enable();
+        _playerInput.UI.Enable();
+        _playerInput.UI.Submit.performed += OnAdvanceDialogue;
     }
 
     private void OnDisable()
     {
-        inputActions.Disable();
+        _playerInput.UI.Disable();
+        _playerInput.UI.Submit.performed -= OnAdvanceDialogue;
     }
 
     void Start()
     {
-        DialogueManager.Instance.OnDialogueLineDisplayed += DisplayDialogue;
-        LocalizationManager.Instance.OnLanguageChanged += HandleLanguageChange;
+        if (DialogueManager.Instance != null)
+        {
+            DialogueManager.Instance.OnDialogueLineDisplayed += DisplayDialogue;
+        }
 
-        DialogueManager.Instance.LoadScriptFromFile("en", "chapter1_scene1");
+        if (LocalizationManager.Instance != null)
+        {
+            LocalizationManager.Instance.OnLanguageChanged += HandleLanguageChange;
+        }
+
+        DialogueManager.Instance.LoadScriptFromFile("en", "ui_test");
         DialogueManager.Instance.AdvanceDialogue();
-
-        StartCoroutine(TestCoroutine());
-
-        LocalizationManager.Instance.LoadLanguage("en");
-        // In the same button click event, after loading the new text:
-        // Replace the obsolete FindObjectOfType with FindFirstObjectByType
-        Object.FindFirstObjectByType<UIManager>().BroadcastMessage("UpdateText", SendMessageOptions.DontRequireReceiver);
     }
 
     void OnDestroy()
     {
-        // It's good practice to unsubscribe when the object is destroyed.
         if (DialogueManager.Instance != null)
         {
             DialogueManager.Instance.OnDialogueLineDisplayed -= DisplayDialogue;
         }
         if (LocalizationManager.Instance != null)
         {
-            LocalizationManager.Instance.OnLanguageChanged -= HandleLanguageChange; // <-- ADD THIS
+            LocalizationManager.Instance.OnLanguageChanged -= HandleLanguageChange;
         }
     }
 
-    // Update is called once per frame
-    void Update()
+    private void OnAdvanceDialogue(InputAction.CallbackContext context)
     {
-        if (inputActions.UI.QuickSave.WasPressedThisFrame())
+        if (dialogueAnimator != null && dialogueAnimator.IsAnimating)
         {
-            SaveManager.Instance.SaveGame(0); // Save to slot 0
+            dialogueAnimator.FinishAnimation();
         }
-
-        if (inputActions.UI.QuickLoad.WasPressedThisFrame())
-        {
-            SaveManager.Instance.LoadGame(0); // Save to slot 0
-        }
-
-        if (inputActions.UI.Submit.WasPressedThisFrame())
+        else
         {
             DialogueManager.Instance.AdvanceDialogue();
         }
-    }
-
-    // This is the new method that will handle the font change event.
-    private void HandleLanguageChange(TMP_FontAsset newFont)
-    {
-        if (speakerNameText != null) speakerNameText.font = newFont;
-        if (dialogueText != null) dialogueText.font = newFont;
     }
 
     private void DisplayDialogue(DialogueLine line)
@@ -99,26 +100,105 @@ public class UIManager : MonoBehaviour
 
         speakerNameText.text = displayName;
 
-        // Instead of setting text directly, tell the animator to show it.
         if (dialogueAnimator != null)
         {
             dialogueAnimator.ShowText(line.text);
         }
         else
         {
-            // Fallback to instant text if no animator is assigned.
             dialogueText.text = line.text;
         }
     }
 
-    private IEnumerator TestCoroutine()
+    private void HandleLanguageChange(TMP_FontAsset newFont)
     {
-        while (DialogueManager.Instance.IsDialogueActive())
+        if (speakerNameText != null) speakerNameText.font = newFont;
+        if (dialogueText != null) dialogueText.font = newFont;
+    }
+
+    // --- NEW UI ANIMATION METHODS ---
+
+    public void ShowUI(float duration)
+    {
+        StopAllCoroutines();
+        StartCoroutine(AnimateUIVisibility(true, duration));
+    }
+
+    public void HideUI(float duration)
+    {
+        StopAllCoroutines();
+        StartCoroutine(AnimateUIVisibility(false, duration));
+    }
+
+    // Add this new public method inside your UIManager class
+    public void ClearDialogueBox()
+    {
+        if (speakerNameText != null) speakerNameText.text = string.Empty;
+        if (dialogueText != null) dialogueText.text = string.Empty;
+
+        if (dialogueAnimator != null)
         {
-            yield return new WaitForSeconds(2f);
-            //DialogueManager.Instance.AdvanceDialogue();
+            dialogueAnimator.Clear();
         }
     }
 
+    private IEnumerator AnimateUIVisibility(bool show, float duration)
+    {
+        // Define animation targets
+        float dialogueTargetY = -280f;
+        float speakerTargetY = -118f;
+        float offscreenYOffset = 300f;
 
+        // Set start/end values based on whether we are showing or hiding
+        float dialogueStartY = show ? dialogueTargetY - offscreenYOffset : dialogueTargetY;
+        float dialogueEndY = show ? dialogueTargetY : dialogueTargetY - offscreenYOffset;
+
+        float speakerStartY = show ? speakerTargetY - offscreenYOffset : speakerTargetY;
+        float speakerEndY = show ? speakerTargetY : speakerTargetY - offscreenYOffset;
+
+        float startAlpha = show ? 0f : 1f;
+        float endAlpha = show ? 1f : 0f;
+
+        float startScaleDialogue = show ? 0.8f : 1f;
+        float endScaleDialogue = show ? 1f : 0.8f;
+
+        float startScaleButtons = show ? 0f : 1f;
+        float endScaleButtons = show ? 1f : 0f;
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = Mathf.Clamp01(elapsed / duration);
+            float easedProgress = Easing.EaseOutQuad(progress);
+
+            // Animate Dialogue Panel
+            dialoguePanelCanvasGroup.alpha = Mathf.Lerp(startAlpha, endAlpha, easedProgress);
+            dialoguePanelRect.anchoredPosition = new Vector2(dialoguePanelRect.anchoredPosition.x, Mathf.Lerp(dialogueStartY, dialogueEndY, easedProgress));
+            dialoguePanelRect.localScale = Vector3.one * Mathf.Lerp(startScaleDialogue, endScaleDialogue, easedProgress);
+
+            // Animate Speaker Name Panel
+            speakerNamePanelCanvasGroup.alpha = Mathf.Lerp(startAlpha, endAlpha, easedProgress);
+            speakerNamePanelRect.anchoredPosition = new Vector2(speakerNamePanelRect.anchoredPosition.x, Mathf.Lerp(speakerStartY, speakerEndY, easedProgress));
+            speakerNamePanelRect.localScale = Vector3.one * Mathf.Lerp(startScaleDialogue, endScaleDialogue, easedProgress);
+
+            // Animate Quick Menu Buttons
+            quickMenuPanelCanvasGroup.alpha = Mathf.Lerp(startAlpha, endAlpha, easedProgress);
+            quickMenuPanelRect.localScale = Vector3.one * Mathf.Lerp(startScaleButtons, endScaleButtons, easedProgress);
+
+            yield return null;
+        }
+
+        // Snap to final values to ensure accuracy
+        dialoguePanelCanvasGroup.alpha = endAlpha;
+        dialoguePanelRect.anchoredPosition = new Vector2(dialoguePanelRect.anchoredPosition.x, dialogueEndY);
+        dialoguePanelRect.localScale = Vector3.one * endScaleDialogue;
+
+        speakerNamePanelCanvasGroup.alpha = endAlpha;
+        speakerNamePanelRect.anchoredPosition = new Vector2(speakerNamePanelRect.anchoredPosition.x, speakerEndY);
+        speakerNamePanelRect.localScale = Vector3.one * endScaleDialogue;
+
+        quickMenuPanelCanvasGroup.alpha = endAlpha;
+        quickMenuPanelRect.localScale = Vector3.one * endScaleButtons;
+    }
 }

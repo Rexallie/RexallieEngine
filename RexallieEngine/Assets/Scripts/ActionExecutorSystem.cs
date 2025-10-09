@@ -53,6 +53,15 @@ public class ActionExecutor : MonoBehaviour
             case "jump":
                 ExecuteJump(action);
                 break;
+            case "showui":
+                StartCoroutine(ExecuteShowUI(action));
+                break;
+            case "hideui":
+                StartCoroutine(ExecuteHideUI(action));
+                break;
+            case "cleardialogue":
+                ExecuteClearDialogue(action);
+                break;
 
             // Variable actions
             case "set":
@@ -132,6 +141,34 @@ public class ActionExecutor : MonoBehaviour
         if (!string.IsNullOrEmpty(label) && DialogueManager.Instance != null)
         {
             DialogueManager.Instance.JumpToLabel(label);
+        }
+    }
+
+    private IEnumerator ExecuteShowUI(ActionNode action)
+    {
+        float duration = float.Parse(action.parameters.GetValueOrDefault("time", "0.5"), System.Globalization.CultureInfo.InvariantCulture);
+
+        isExecutingAction = true;
+        UIManager.Instance.ShowUI(duration);
+        yield return new WaitForSeconds(duration);
+        isExecutingAction = false;
+    }
+
+    private IEnumerator ExecuteHideUI(ActionNode action)
+    {
+        float duration = float.Parse(action.parameters.GetValueOrDefault("time", "0.5"), System.Globalization.CultureInfo.InvariantCulture);
+
+        isExecutingAction = true;
+        UIManager.Instance.HideUI(duration);
+        yield return new WaitForSeconds(duration);
+        isExecutingAction = false;
+    }
+
+    private void ExecuteClearDialogue(ActionNode action)
+    {
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.ClearDialogueBox();
         }
     }
 

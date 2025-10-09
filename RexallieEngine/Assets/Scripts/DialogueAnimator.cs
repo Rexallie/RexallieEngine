@@ -44,6 +44,17 @@ public class DialogueAnimator : MonoBehaviour
         IsAnimating = false;
     }
 
+    // Add this new public method inside your DialogueAnimator class
+    public void Clear()
+    {
+        if (typewriterCoroutine != null)
+        {
+            StopCoroutine(typewriterCoroutine);
+        }
+        textField.text = string.Empty;
+        IsAnimating = false;
+    }
+
     private IEnumerator TypewriterEffect(string text)
     {
         IsAnimating = true; // Signal that we are starting.
