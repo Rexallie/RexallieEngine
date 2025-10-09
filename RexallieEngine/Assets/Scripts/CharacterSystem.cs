@@ -42,9 +42,10 @@ public class CharacterManager : MonoBehaviour
         useUIMode = (characterContainer != null);
     }
 
-    public CharacterData GetCharacterData(string characterName)
+    public CharacterData GetCharacterData(string characterID)
     {
-        return availableCharacters.Find(c => c.characterName.ToLower() == characterName.ToLower());
+        // Find the character by their unique ID, not their display name.
+        return availableCharacters.Find(c => c.characterID.ToLower() == characterID.ToLower());
     }
 
     public void ShowCharacter(string characterName, string position, string portrait, string expression)

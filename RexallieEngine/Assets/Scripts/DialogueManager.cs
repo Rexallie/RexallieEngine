@@ -2,21 +2,21 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
-using System.Collections; // Added for the coroutine
+using System.Collections;
 
-// ==================== UPDATED DATA STRUCTURES ====================
+// ==================== DATA STRUCTURES ====================
 
 [System.Serializable]
 public abstract class DialogueNode
 {
     public string id;
-    public int lineNumber; // NEW: Every node now knows its original line number.
+    public int lineNumber;
 }
 
 [System.Serializable]
 public class DialogueLine : DialogueNode
 {
-    public string speaker;
+    public string speakerID;
     public string expression;
     public string text;
     public string portrait;
@@ -50,7 +50,7 @@ public class ScriptData
     public Dictionary<string, int> labels;
 }
 
-// ==================== CORRECTED PARSER ====================
+// ==================== PARSER ====================
 
 public class DialogueScriptParser
 {
@@ -68,7 +68,6 @@ public class DialogueScriptParser
 
         string[] lines = scriptText.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
 
-        // First Pass: Find all labels and their line numbers.
         for (int i = 0; i < lines.Length; i++)
         {
             string line = lines[i].Trim();
@@ -82,7 +81,6 @@ public class DialogueScriptParser
             }
         }
 
-        // Second Pass: Parse the script content.
         for (int i = 0; i < lines.Length; i++)
         {
             string line = lines[i].Trim();
@@ -125,19 +123,48 @@ public class DialogueScriptParser
             if (line.Contains(":"))
             {
                 int colonIndex = line.LastIndexOf(':');
-                string dialogueText = line.Substring(colonIndex + 1).Trim();
+                string speakerPart = line.Substring(0, colonIndex);
+                string firstLineText = line.Substring(colonIndex + 1).Trim();
 
-                if (string.IsNullOrWhiteSpace(dialogueText) && i + 1 < lines.Length)
+                System.Text.StringBuilder dialogueBuilder = new System.Text.StringBuilder();
+                if (!string.IsNullOrEmpty(firstLineText))
                 {
-                    string nextLine = lines[i + 1].Trim();
-                    if (!nextLine.StartsWith("@") && !nextLine.Contains("->") && (!nextLine.EndsWith(":") || nextLine.Contains(" ")))
-                    {
-                        dialogueText = nextLine;
-                        i++;
-                    }
+                    dialogueBuilder.Append(firstLineText);
                 }
 
-                DialogueLine dialogue = ParseDialogue(line.Substring(0, colonIndex), dialogueText, i);
+                int lookaheadIndex = i + 1;
+                while (lookaheadIndex < lines.Length)
+                {
+                    string nextLine = lines[lookaheadIndex].Trim();
+
+                    bool isTerminator =
+                        string.IsNullOrWhiteSpace(nextLine) ||
+                        nextLine.StartsWith("@") ||
+                        nextLine.Contains("->") ||
+                        (nextLine.EndsWith(":") && !nextLine.Contains(" "));
+
+                    if (isTerminator) break;
+
+                    if (nextLine.Contains(":"))
+                    {
+                        string potentialSpeaker = nextLine.Substring(0, nextLine.IndexOf(':')).Trim();
+                        if (potentialSpeaker.Length > 0 && !potentialSpeaker.Contains(" "))
+                        {
+                            break;
+                        }
+                    }
+
+                    if (dialogueBuilder.Length > 0)
+                    {
+                        dialogueBuilder.Append("\n"); // Join with a newline character.
+                    }
+                    dialogueBuilder.Append(nextLine);
+                    lookaheadIndex++;
+                }
+
+                i = lookaheadIndex - 1;
+
+                DialogueLine dialogue = ParseDialogue(speakerPart, dialogueBuilder.ToString(), i);
                 if (dialogue != null) data.nodes.Add(dialogue);
                 continue;
             }
@@ -192,9 +219,9 @@ public class DialogueScriptParser
         {
             id = $"node_{nodeCounter++:D3}",
             lineNumber = lineNumber,
-            speaker = speaker,
-            portrait = portrait, // No longer defaulting here to allow null
-            expression = expression, // No longer defaulting here to allow null
+            speakerID = speaker,
+            portrait = portrait,
+            expression = expression,
             text = dialogueText
         };
     }
@@ -213,7 +240,6 @@ public class DialogueManager : MonoBehaviour
     private bool isProcessingNode = false;
     private bool isWaitingOnChoice = false;
 
-    // Events
     public event Action<DialogueLine> OnDialogueLineDisplayed;
     public event Action<ActionNode> OnActionExecuted;
     public event Action OnDialogueEnded;
@@ -271,6 +297,15 @@ public class DialogueManager : MonoBehaviour
         if (node is DialogueLine dialogueLine)
         {
             OnDialogueLineDisplayed?.Invoke(dialogueLine);
+
+            // NEW: Check if the next node is a choice.
+            if (currentNodeIndex < currentScript.nodes.Count && currentScript.nodes[currentNodeIndex] is ChoiceNode)
+            {
+                // If it is, unlock and immediately advance to show the choices.
+                isProcessingNode = false;
+                AdvanceDialogue();
+                yield break; // End this processing step.
+            }
         }
         else if (node is ChoiceNode choiceNode)
         {
@@ -281,10 +316,15 @@ public class DialogueManager : MonoBehaviour
         {
             OnActionExecuted?.Invoke(actionNode);
 
-            // The jump action will change the node index, so we check if it was a jump
-            bool wasJump = actionNode.action.ToLower() == "jump";
+            string actionType = actionNode.action.ToLower();
+            bool isFlowControlAction = (actionType == "jump" || actionType == "if");
 
-            if (!wasJump)
+            if (isFlowControlAction)
+            {
+                // Flow control actions handle their own advancement.
+                // Do nothing here and let the coroutine end.
+            }
+            else // For all other actions (wait, showCharacter, etc.)
             {
                 yield return null;
                 if (ActionExecutor.Instance != null)
@@ -295,7 +335,7 @@ public class DialogueManager : MonoBehaviour
                     }
                 }
                 isProcessingNode = false;
-                AdvanceDialogue();
+                AdvanceDialogue(); // Automatically advance to the next node.
                 yield break;
             }
         }
@@ -313,7 +353,7 @@ public class DialogueManager : MonoBehaviour
         if (currentScript.labels.TryGetValue(label, out int lineIndex))
         {
             currentNodeIndex = FindNodeIndexForLine(lineIndex);
-            isProcessingNode = false; // Unlock processing before advancing
+            isProcessingNode = false;
             AdvanceDialogue();
         }
         else
@@ -322,18 +362,16 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-    // THIS IS THE CORRECTED LOGIC
     private int FindNodeIndexForLine(int targetLineIndex)
     {
         for (int i = 0; i < currentScript.nodes.Count; i++)
         {
-            // Find the first node that was parsed on or after the label's line number.
             if (currentScript.nodes[i].lineNumber >= targetLineIndex)
             {
                 return i;
             }
         }
-        return currentScript.nodes.Count; // Jump to end if no nodes are after the label
+        return currentScript.nodes.Count;
     }
 
     public string GetCurrentScriptName() { return currentScriptName; }

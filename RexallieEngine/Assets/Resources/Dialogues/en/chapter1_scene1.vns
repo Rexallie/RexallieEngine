@@ -3,10 +3,11 @@
 
 start:
 
-    @showCharacter Alice left alice_casual base
+    @showCharacter Alice left casual base
 
     Alice [base]:
     Who should I talk to?
+    I need help.
 
     @choice
         "Talk to Bob." -> talk_to_bob

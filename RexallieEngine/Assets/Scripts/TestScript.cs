@@ -1,4 +1,5 @@
-using System.Collections;
+﻿using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -12,7 +13,18 @@ public class TestScript : MonoBehaviour
     private TextMeshProUGUI dialogueText;
 
     [SerializeField]
+    private TextMeshProUGUI speakerNameText; // <-- ADD a reference for the speaker's nameplate
+
+    [SerializeField]
     private InputSystem_Actions inputActions;
+
+    // A simple dictionary for translating character IDs to display names.
+    private Dictionary<string, string> characterNameLocalization = new Dictionary<string, string>
+    {
+        { "alice", "Alice" },
+        // To add Japanese:
+        // { "alice", "アリス" }, 
+    };
 
     private void Awake()
     {
@@ -60,7 +72,14 @@ public class TestScript : MonoBehaviour
 
     private void DisplayDialogue(DialogueLine line)
     {
-        Debug.Log(dialogueText);
+        // Look up the display name using the speakerID.
+        string displayName = line.speakerID;
+        if (characterNameLocalization.ContainsKey(line.speakerID.ToLower()))
+        {
+            displayName = characterNameLocalization[line.speakerID.ToLower()];
+        }
+
+        speakerNameText.text = displayName; // Set the nameplate text
         dialogueText.text = line.text;
     }
 

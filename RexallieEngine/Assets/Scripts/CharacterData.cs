@@ -6,7 +6,11 @@ using UnityEngine;
 public class CharacterData : ScriptableObject
 {
     [Header("Basic Info")]
+    [Tooltip("A unique, non-translated ID used in scripts (e.g., 'alice', 'bob_smith').")]
+    public string characterID;
+    [Tooltip("The default display name for the character (e.g., for English).")]
     public string characterName;
+
     public Color nameColor = Color.white;
 
     [Header("Base Portraits (Body/Outfit)")]

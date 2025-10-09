@@ -151,7 +151,7 @@ public class CharacterController : MonoBehaviour
 
     private void UpdateCharacter(DialogueLine line)
     {
-        if (line.speaker != null && currentCharacter != null && line.speaker.ToLower() == currentCharacter.characterName.ToLower())
+        if (line.speakerID != null && currentCharacter != null && line.speakerID.ToLower() == currentCharacter.characterName.ToLower())
         {
             if (!string.IsNullOrEmpty(line.portrait) && line.portrait.ToLower() != currentPortrait.ToLower())
             {

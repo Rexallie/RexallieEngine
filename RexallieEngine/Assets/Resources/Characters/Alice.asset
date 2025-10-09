@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30739c416ce0bd54daf6e32d2ceff0ac, type: 3}
   m_Name: Alice
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
+  characterID: alice
   characterName: Alice
   nameColor: {r: 0.81960785, g: 0.49338317, b: 0.4392157, a: 1}
   portraits:

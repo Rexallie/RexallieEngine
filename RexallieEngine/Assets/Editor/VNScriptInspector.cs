@@ -167,7 +167,7 @@ public class VNScriptPreviewWindow : EditorWindow
                 // Speaker info
                 GUIStyle speakerStyle = new GUIStyle(EditorStyles.boldLabel);
                 speakerStyle.fontSize = 14;
-                EditorGUILayout.LabelField(dialogue.speaker, speakerStyle);
+                EditorGUILayout.LabelField(dialogue.speakerID, speakerStyle);
 
                 EditorGUI.indentLevel++;
 
