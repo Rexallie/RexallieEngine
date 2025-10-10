@@ -26,9 +26,17 @@ public class UIManager : MonoBehaviour
     [Header("History")]
     [SerializeField] private HistoryPanel historyPanel;
 
+    [Header("Save / Load")]
+    [SerializeField] private SaveLoadPanel saveLoadPanel;
+
     [Header("Navigation Buttons")]
     [SerializeField] private Button backButton;
     [SerializeField] private Button historyButton;
+    [SerializeField] private Button saveButton;
+    [SerializeField] private Button loadButton;
+
+    [Header("UI Objects")]
+    [SerializeField] private GameObject uiObjects;
 
     private void Awake()
     {
@@ -68,6 +76,16 @@ public class UIManager : MonoBehaviour
         if (historyButton != null && historyPanel != null)
         {
             historyButton.onClick.AddListener(historyPanel.Show);
+        }
+
+        if (saveButton != null && saveLoadPanel != null)
+        {
+            saveButton.onClick.AddListener(() => saveLoadPanel.Show(true));
+        }
+
+        if (loadButton != null && saveLoadPanel != null)
+        {
+            loadButton.onClick.AddListener(() => saveLoadPanel.Show(false));
         }
 
         DialogueManager.Instance.LoadScriptFromFile("en", "ui_test");
@@ -166,6 +184,22 @@ public class UIManager : MonoBehaviour
     {
         StopAllCoroutines();
         StartCoroutine(AnimateUIVisibility(false, duration));
+    }
+
+    // Add this new method anywhere inside your UIManager class
+
+    /// <summary>
+    /// Instantly sets the visibility of the core dialogue UI panels.
+    /// Used by the SaveManager to prepare for a screenshot.
+    /// </summary>
+    public void SetDialoguePanelsActive(bool isActive)
+    {
+        /*
+        float alpha = isActive ? 1f : 0f;
+        if (dialoguePanelCanvasGroup != null) dialoguePanelCanvasGroup.alpha = alpha;
+        if (speakerNamePanelCanvasGroup != null) speakerNamePanelCanvasGroup.alpha = alpha;
+        if (quickMenuPanelCanvasGroup != null) quickMenuPanelCanvasGroup.alpha = alpha;*/
+        if (uiObjects != null) uiObjects.SetActive(isActive);
     }
 
     private IEnumerator AnimateUIVisibility(bool show, float duration)

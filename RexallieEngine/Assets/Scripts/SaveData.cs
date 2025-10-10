@@ -1,7 +1,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// This file now contains all data structures for saving/loading and history.
+// This file contains all data structures for saving, loading, and history.
+
+// NEW: This class holds all the metadata for a save file.
+[System.Serializable]
+public class SaveMetadata
+{
+    public string saveName;
+    public string timestamp;
+    public float totalPlaytime;
+    public string screenshotPath;
+}
 
 [System.Serializable]
 public class CharacterSaveData
@@ -10,7 +20,7 @@ public class CharacterSaveData
     public Vector2 anchoredPosition;
     public string portrait;
     public string expression;
-    public bool isHighlighted; // To remember who was speaking
+    public bool isHighlighted;
 }
 
 [System.Serializable]
@@ -21,7 +31,6 @@ public class VariableSaveData
     public string type;
 }
 
-// NEW: Holds the state of the zoom and pan
 [System.Serializable]
 public class SceneEffectsSaveData
 {
@@ -29,7 +38,6 @@ public class SceneEffectsSaveData
     public Vector3 worldContainerScale;
 }
 
-// NEW: Holds the state of the UI panels
 [System.Serializable]
 public class UISaveData
 {
@@ -38,21 +46,24 @@ public class UISaveData
     public bool quickMenuPanelVisible;
 }
 
-// This is the main class that holds a complete snapshot of the game state.
+// HistoryState now includes the new metadata.
 [System.Serializable]
 public class HistoryState
 {
+    public SaveMetadata metadata; // <-- ADDED
+
     public string currentScriptName;
     public int currentNodeIndex;
     public List<CharacterSaveData> activeCharacters;
     public string currentBackgroundName;
     public string currentMusicTrackName;
     public List<VariableSaveData> variables;
-    public SceneEffectsSaveData sceneEffectsState; // Added
-    public UISaveData uiState; // Added
+    public SceneEffectsSaveData sceneEffectsState;
+    public UISaveData uiState;
 
     public HistoryState()
     {
+        metadata = new SaveMetadata(); // <-- ADDED
         activeCharacters = new List<CharacterSaveData>();
         variables = new List<VariableSaveData>();
         sceneEffectsState = new SceneEffectsSaveData();
