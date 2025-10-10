@@ -23,8 +23,12 @@ public class UIManager : MonoBehaviour
     [SerializeField] private CanvasGroup quickMenuPanelCanvasGroup;
     [SerializeField] private RectTransform quickMenuPanelRect;
 
+    [Header("History")]
+    [SerializeField] private HistoryPanel historyPanel;
+
     [Header("Navigation Buttons")]
     [SerializeField] private Button backButton;
+    [SerializeField] private Button historyButton;
 
     private void Awake()
     {
@@ -59,6 +63,11 @@ public class UIManager : MonoBehaviour
         if (backButton != null && HistoryManager.Instance != null)
         {
             backButton.onClick.AddListener(HistoryManager.Instance.Rollback);
+        }
+
+        if (historyButton != null && historyPanel != null)
+        {
+            historyButton.onClick.AddListener(historyPanel.Show);
         }
 
         DialogueManager.Instance.LoadScriptFromFile("en", "ui_test");
@@ -104,6 +113,8 @@ public class UIManager : MonoBehaviour
         {
             dialogueText.text = line.text;
         }
+
+        DialogueLogManager.Instance.AddLog(displayName, line.text);
     }
 
     private void HandleLanguageChange(TMP_FontAsset newFont)
