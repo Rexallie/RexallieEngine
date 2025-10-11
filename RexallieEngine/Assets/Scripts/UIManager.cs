@@ -6,9 +6,13 @@ using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
-    public static UIManager Instance { get; private set; } // Make sure this is a singleton
+    public static UIManager Instance { get; private set; }
 
     private InputSystem_Actions _playerInput;
+
+    [Header("UI Content")]
+    [Tooltip("Assign the parent GameObject that holds all UI elements here.")]
+    [SerializeField] private GameObject uiContent;
 
     [Header("Dialogue UI")]
     [SerializeField] private TextMeshProUGUI speakerNameText;
@@ -26,7 +30,7 @@ public class UIManager : MonoBehaviour
     [Header("History")]
     [SerializeField] private HistoryPanel historyPanel;
 
-    [Header("Save / Load")]
+    [Header("Save & Load")]
     [SerializeField] private SaveLoadPanel saveLoadPanel;
 
     [Header("Navigation Buttons")]
@@ -35,8 +39,6 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button saveButton;
     [SerializeField] private Button loadButton;
 
-    [Header("UI Objects")]
-    [SerializeField] private GameObject uiObjects;
 
     private void Awake()
     {
@@ -152,7 +154,14 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // --- STATE MANAGEMENT ---
+    // --- NEW METHOD for SCREENSHOTS ---
+    public void SetUIActive(bool isActive)
+    {
+        if (uiContent != null)
+        {
+            uiContent.SetActive(isActive);
+        }
+    }
 
     public UISaveData GetState()
     {
@@ -166,13 +175,10 @@ public class UIManager : MonoBehaviour
 
     public void RestoreState(UISaveData data)
     {
-        // Instantly set the visibility without animation
         dialoguePanelCanvasGroup.alpha = data.dialoguePanelVisible ? 1f : 0f;
         speakerNamePanelCanvasGroup.alpha = data.speakerNamePanelVisible ? 1f : 0f;
         quickMenuPanelCanvasGroup.alpha = data.quickMenuPanelVisible ? 1f : 0f;
     }
-
-    // --- UI ANIMATIONS ---
 
     public void ShowUI(float duration)
     {
@@ -184,22 +190,6 @@ public class UIManager : MonoBehaviour
     {
         StopAllCoroutines();
         StartCoroutine(AnimateUIVisibility(false, duration));
-    }
-
-    // Add this new method anywhere inside your UIManager class
-
-    /// <summary>
-    /// Instantly sets the visibility of the core dialogue UI panels.
-    /// Used by the SaveManager to prepare for a screenshot.
-    /// </summary>
-    public void SetDialoguePanelsActive(bool isActive)
-    {
-        /*
-        float alpha = isActive ? 1f : 0f;
-        if (dialoguePanelCanvasGroup != null) dialoguePanelCanvasGroup.alpha = alpha;
-        if (speakerNamePanelCanvasGroup != null) speakerNamePanelCanvasGroup.alpha = alpha;
-        if (quickMenuPanelCanvasGroup != null) quickMenuPanelCanvasGroup.alpha = alpha;*/
-        if (uiObjects != null) uiObjects.SetActive(isActive);
     }
 
     private IEnumerator AnimateUIVisibility(bool show, float duration)

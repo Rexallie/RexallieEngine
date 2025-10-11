@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.IO; // Required for file operations
 
 public class SaveSlotUI : MonoBehaviour
 {
@@ -21,14 +22,12 @@ public class SaveSlotUI : MonoBehaviour
         isSaveMode = isSaving;
         parentPanel = panel;
 
-        if (metadata != null)
+        if (metadata != null && !string.IsNullOrEmpty(metadata.timestamp))
         {
-            // A save file exists, so display its data.
             slotNameText.text = metadata.saveName;
             timestampText.text = metadata.timestamp;
             playtimeText.text = FormatPlaytime(metadata.totalPlaytime);
 
-            // Load the screenshot from the file path
             Texture2D screenshot = LoadScreenshot(metadata.screenshotPath);
             if (screenshot != null)
             {
@@ -37,7 +36,6 @@ public class SaveSlotUI : MonoBehaviour
         }
         else
         {
-            // No save file, display as an empty slot.
             slotNameText.text = $"Empty Slot {slotNumber + 1}";
             timestampText.text = "--:--:--";
             playtimeText.text = "00:00:00";
@@ -51,27 +49,24 @@ public class SaveSlotUI : MonoBehaviour
     {
         if (isSaveMode)
         {
-            // In save mode, we can prompt for a name or just save directly.
-            // For now, we'll use a default name.
             string saveName = $"Save {slotNumber + 1}";
-            SaveManager.Instance.SaveGame(slotNumber, saveName);
-            parentPanel.Hide(); // Close the panel after saving
+            // Pass the parent panel's Refresh method as the action to perform on completion.
+            SaveManager.Instance.SaveGame(slotNumber, saveName, parentPanel.Refresh);
         }
         else
         {
-            // In load mode, just load the game.
             SaveManager.Instance.LoadGame(slotNumber);
-            parentPanel.Hide(); // Close the panel after loading
+            parentPanel.Hide();
         }
     }
 
     private Texture2D LoadScreenshot(string path)
     {
-        if (System.IO.File.Exists(path))
+        if (!string.IsNullOrEmpty(path) && File.Exists(path))
         {
-            byte[] fileData = System.IO.File.ReadAllBytes(path);
+            byte[] fileData = File.ReadAllBytes(path);
             Texture2D tex = new Texture2D(2, 2);
-            tex.LoadImage(fileData); // This will auto-resize the texture
+            tex.LoadImage(fileData);
             return tex;
         }
         return null;

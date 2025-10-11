@@ -21,7 +21,6 @@ public class SaveLoadPanel : MonoBehaviour
     void Awake()
     {
         canvasGroup = GetComponent<CanvasGroup>();
-        // Ensure the panel starts hidden and non-interactable
         canvasGroup.alpha = 0f;
         canvasGroup.interactable = false;
         canvasGroup.blocksRaycasts = false;
@@ -43,6 +42,12 @@ public class SaveLoadPanel : MonoBehaviour
     {
         if (animationCoroutine != null) StopCoroutine(animationCoroutine);
         animationCoroutine = StartCoroutine(HidePanelCoroutine());
+    }
+
+    // --- NEW: This method will be called to refresh the save slots ---
+    public void Refresh()
+    {
+        PopulateSlots();
     }
 
     private void PopulateSlots()

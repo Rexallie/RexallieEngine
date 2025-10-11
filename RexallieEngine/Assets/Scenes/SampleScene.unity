@@ -4500,6 +4500,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21c1e2a85f9dba54c963f6719ee0df03, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TestScript
+  uiContent: {fileID: 398288731}
   speakerNameText: {fileID: 1071120402}
   dialogueText: {fileID: 856497406}
   dialogueAnimator: {fileID: 856497409}
@@ -4515,7 +4516,6 @@ MonoBehaviour:
   historyButton: {fileID: 780406653}
   saveButton: {fileID: 1166402143}
   loadButton: {fileID: 1772635049}
-  uiObjects: {fileID: 398288731}
 --- !u!114 &1159438259
 MonoBehaviour:
   m_ObjectHideFlags: 0

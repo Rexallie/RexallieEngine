@@ -1,6 +1,6 @@
 using UnityEngine;
 using System.IO;
-using System.Collections; // Required for Coroutines
+using System.Collections;
 
 public class SaveManager : MonoBehaviour
 {
@@ -21,57 +21,44 @@ public class SaveManager : MonoBehaviour
         }
     }
 
-    public void SaveGame(int slotNumber, string saveName)
+    public void SaveGame(int slotNumber, string saveName, System.Action onSaveComplete = null)
     {
-        // Start the save process as a coroutine to handle the screenshot correctly.
-        StartCoroutine(SaveGameCoroutine(slotNumber, saveName));
+        StartCoroutine(SaveGameCoroutine(slotNumber, saveName, onSaveComplete));
     }
 
-    private IEnumerator SaveGameCoroutine(int slotNumber, string saveName)
+    private IEnumerator SaveGameCoroutine(int slotNumber, string saveName, System.Action onSaveComplete)
     {
-        // --- 1. Prepare for Screenshot ---
-        // Instantly hide the dialogue UI so it's not in the picture.
-        if (UIManager.Instance != null)
-        {
-            UIManager.Instance.SetDialoguePanelsActive(false);
-        }
+        // 1. Hide the UI using the new UIManager function
+        UIManager.Instance.SetUIActive(false);
+        yield return new WaitForEndOfFrame(); // Wait a frame for UI to disappear
 
-        // Wait one frame for the UI to become fully hidden before taking the picture.
-        yield return new WaitForEndOfFrame();
-
-        // --- 2. Capture Screenshot ---
+        // 2. Capture Screenshot
         Texture2D screenshot = ScreenCapture.CaptureScreenshotAsTexture();
         string screenshotPath = GetScreenshotPath(slotNumber);
 
-        // --- 3. Restore UI ---
-        // Instantly show the dialogue UI again. This all happens so fast the player won't see it.
-        if (UIManager.Instance != null)
-        {
-            UIManager.Instance.SetDialoguePanelsActive(true);
-        }
+        // 3. Show the UI again
+        UIManager.Instance.SetUIActive(true);
 
-        // --- 4. Gather Data & Save ---
+        // 4. Gather Data and Save
         HistoryState data = GatherCurrentState();
-
         data.metadata.saveName = saveName;
         data.metadata.timestamp = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         data.metadata.totalPlaytime = GameplayTimeManager.Instance.GetPlaytime();
         data.metadata.screenshotPath = screenshotPath;
 
-        // Encode and save the screenshot file to disk.
         byte[] bytes = screenshot.EncodeToPNG();
         File.WriteAllBytes(screenshotPath, bytes);
 
-        // Save the main data file.
         string json = JsonUtility.ToJson(data, true);
         File.WriteAllText(GetSaveFilePath(slotNumber), json);
 
-        // Clean up the texture from memory
         Destroy(screenshot);
 
         Debug.Log($"Game Saved to slot {slotNumber}");
-    }
 
+        // 5. Call the callback to notify the UI that the save is finished.
+        onSaveComplete?.Invoke();
+    }
 
     public void LoadGame(int slotNumber)
     {
