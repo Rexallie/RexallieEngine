@@ -173,14 +173,16 @@ public class UIManager : MonoBehaviour
     private void ToggleSkipMode()
     {
         if (DialogueManager.Instance == null) return;
-
+        
         // Invert the skipping state
         DialogueManager.Instance.IsSkipping = !DialogueManager.Instance.IsSkipping;
 
-        // If we just turned skipping on, immediately call advance to start the loop
+        // --- THIS IS THE FIX ---
+        // If we just turned skipping ON, call the DialogueManager directly to start the loop.
+        // This avoids the OnAdvanceDialogue method which is meant to CANCEL the skip.
         if (DialogueManager.Instance.IsSkipping)
         {
-            OnAdvanceDialogue(new InputAction.CallbackContext());
+            DialogueManager.Instance.AdvanceDialogue();
         }
     }
 
