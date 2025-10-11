@@ -9,6 +9,7 @@
     { "key": "ui_auto", "value": "自动" },
     { "key": "ui_skip", "value": "跳过" },
     { "key": "ui_history", "value": "历史" },
-    { "key": "ui_back", "value": "返回" }
+    { "key": "ui_back", "value": "返回" },
+    { "key": "ui_quick_save_notification", "value": "游戏已保存！" }
   ]
 }

@@ -62,6 +62,9 @@ public class ActionExecutor : MonoBehaviour
             case "cleardialogue":
                 ExecuteClearDialogue(action);
                 break;
+            case "unlockcg":
+                ExecuteUnlockCG(action);
+                break;
 
             // Variable actions
             case "set":
@@ -169,6 +172,16 @@ public class ActionExecutor : MonoBehaviour
         if (UIManager.Instance != null)
         {
             UIManager.Instance.ClearDialogueBox();
+        }
+    }
+
+    private void ExecuteUnlockCG(ActionNode action)
+    {
+        // Syntax: @unlock_cg gallery_image_01
+        string cgID = action.parameters.GetValueOrDefault("param1", "");
+        if (!string.IsNullOrEmpty(cgID) && PersistentDataManager.Instance != null)
+        {
+            PersistentDataManager.Instance.UnlockCG(cgID);
         }
     }
 

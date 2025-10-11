@@ -6,7 +6,8 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    public int MaxSaveSlots = 10;
+    public int MaxSaveSlots = 15;
+    public const int QuickSaveSlot = 15;
 
     void Awake()
     {

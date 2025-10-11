@@ -9,6 +9,7 @@
     { "key": "ui_auto", "value": "自動" },
     { "key": "ui_skip", "value": "スキップ" },
     { "key": "ui_history", "value": "履歴" },
-    { "key": "ui_back", "value": "戻る" }
+    { "key": "ui_back", "value": "戻る" },
+    { "key": "ui_quick_save_notification", "value": "ゲームを保存しました！" }
   ]
 }

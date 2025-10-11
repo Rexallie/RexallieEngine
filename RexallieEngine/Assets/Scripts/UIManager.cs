@@ -27,6 +27,13 @@ public class UIManager : MonoBehaviour
     [SerializeField] private CanvasGroup quickMenuPanelCanvasGroup;
     [SerializeField] private RectTransform quickMenuPanelRect;
 
+    // --- NEW: References for the notification ---
+    [Header("Notifications")]
+    [SerializeField] private CanvasGroup notificationPanel;
+    [SerializeField] private TextMeshProUGUI notificationText;
+    [SerializeField] private float notificationDuration = 2f;
+    [SerializeField] private float notificationFadeTime = 0.5f;
+
     [Header("History")]
     [SerializeField] private HistoryPanel historyPanel;
 
@@ -38,12 +45,17 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button historyButton;
     [SerializeField] private Button saveButton;
     [SerializeField] private Button loadButton;
+    [SerializeField] private Button quickSaveButton; // <-- ADDED
+    [SerializeField] private Button quickLoadButton; // <-- ADDED
+    [SerializeField] private Button skipButton; // <-- ADD THIS
 
 
     private void Awake()
     {
         if (Instance == null) { Instance = this; } else { Destroy(gameObject); }
         _playerInput = new InputSystem_Actions();
+
+        if (notificationPanel != null) notificationPanel.alpha = 0;
     }
 
     private void OnEnable()
@@ -90,6 +102,21 @@ public class UIManager : MonoBehaviour
             loadButton.onClick.AddListener(() => saveLoadPanel.Show(false));
         }
 
+        if (quickSaveButton != null && SaveManager.Instance != null)
+        {
+            quickSaveButton.onClick.AddListener(OnQuickSave);
+        }
+
+        if (quickLoadButton != null && SaveManager.Instance != null)
+        {
+            quickLoadButton.onClick.AddListener(() => SaveManager.Instance.LoadGame(SaveManager.QuickSaveSlot));
+        }
+
+        if (skipButton != null && DialogueManager.Instance != null)
+        {
+            skipButton.onClick.AddListener(ToggleSkipMode);
+        }
+
         DialogueManager.Instance.LoadScriptFromFile("en", "ui_test");
         DialogueManager.Instance.AdvanceDialogue();
     }
@@ -108,6 +135,12 @@ public class UIManager : MonoBehaviour
 
     private void OnAdvanceDialogue(InputAction.CallbackContext context)
     {
+        if (DialogueManager.Instance.IsSkipping)
+        {
+            DialogueManager.Instance.IsSkipping = false;
+            return;
+        }
+
         if (dialogueAnimator != null && dialogueAnimator.IsAnimating)
         {
             dialogueAnimator.FinishAnimation();
@@ -135,6 +168,54 @@ public class UIManager : MonoBehaviour
         }
 
         DialogueLogManager.Instance.AddLog(displayName, line.text);
+    }
+
+    private void ToggleSkipMode()
+    {
+        if (DialogueManager.Instance == null) return;
+
+        // Invert the skipping state
+        DialogueManager.Instance.IsSkipping = !DialogueManager.Instance.IsSkipping;
+
+        // If we just turned skipping on, immediately call advance to start the loop
+        if (DialogueManager.Instance.IsSkipping)
+        {
+            OnAdvanceDialogue(new InputAction.CallbackContext());
+        }
+    }
+
+    private void OnQuickSave()
+    {
+        SaveManager.Instance.SaveGame(SaveManager.QuickSaveSlot, "Quick Save", () => {
+            StartCoroutine(ShowNotification("ui_quick_save_notification"));
+        });
+    }
+
+    private IEnumerator ShowNotification(string localizationKey)
+    {
+        if (notificationPanel == null) yield break;
+
+        notificationText.text = LocalizationManager.Instance.GetLocalizedValue(localizationKey);
+
+        float timer = 0;
+        while (timer < notificationFadeTime)
+        {
+            timer += Time.deltaTime;
+            notificationPanel.alpha = Mathf.Lerp(0, 1, timer / notificationFadeTime);
+            yield return null;
+        }
+        notificationPanel.alpha = 1;
+
+        yield return new WaitForSeconds(notificationDuration);
+
+        timer = 0;
+        while (timer < notificationFadeTime)
+        {
+            timer += Time.deltaTime;
+            notificationPanel.alpha = Mathf.Lerp(1, 0, timer / notificationFadeTime);
+            yield return null;
+        }
+        notificationPanel.alpha = 0;
     }
 
     private void HandleLanguageChange(TMP_FontAsset newFont)

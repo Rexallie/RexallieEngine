@@ -239,6 +239,10 @@ public class DialogueManager : MonoBehaviour
     private string currentScriptName;
     private bool isProcessingNode = false;
     private bool isWaitingOnChoice = false;
+    // --- THIS IS THE KEY CHANGE ---
+    // The IsSkipping property is now public so the UIManager can control it.
+    // The local 'readDialogueIDs' set has been removed.
+    public bool IsSkipping { get; set; } = false;
 
     public event Action<DialogueLine> OnDialogueLineDisplayed;
     public event Action<ActionNode> OnActionExecuted;
@@ -276,7 +280,11 @@ public class DialogueManager : MonoBehaviour
     // It is called automatically every time a dialogue line is shown to the player.
     private void OnDialogueLineWasDisplayed(DialogueLine line)
     {
-        // If we are not in the middle of restoring a state, record the current game state.
+        // --- THIS IS THE KEY CHANGE ---
+        // Instead of tracking locally, we tell the PersistentDataManager to mark the line as read.
+        string lineID = $"{currentScriptName}_{line.lineNumber}";
+        PersistentDataManager.Instance.MarkLineAsRead(lineID);
+
         if (!isRestoringState)
         {
             HistoryManager.Instance.RecordState();
@@ -303,6 +311,31 @@ public class DialogueManager : MonoBehaviour
     public void AdvanceDialogue()
     {
         if (isProcessingNode || isWaitingOnChoice) return;
+
+        if (IsSkipping)
+        {
+            if (currentNodeIndex >= currentScript.nodes.Count)
+            {
+                IsSkipping = false; // End of script, stop skipping
+            }
+            else
+            {
+                DialogueNode nextNode = currentScript.nodes[currentNodeIndex];
+                if (nextNode is ChoiceNode)
+                {
+                    IsSkipping = false; // Stop skipping if we hit a choice
+                }
+                else if (nextNode is DialogueLine line)
+                {
+                    string lineID = $"{currentScriptName}_{line.lineNumber}";
+                    if (!PersistentDataManager.Instance.IsLineRead(lineID))
+                    {
+                        IsSkipping = false;
+                    }
+                }
+            }
+        }
+
         StartCoroutine(ProcessCurrentNode());
     }
 
@@ -375,7 +408,14 @@ public class DialogueManager : MonoBehaviour
         isProcessingNode = false;
         // Reset the flag after processing is done.
         if (isRestoringState) isRestoringState = false;
+
+        if (IsSkipping)
+        {
+            yield return null; // Wait one frame to avoid stack overflow
+            AdvanceDialogue();
+        }
     }
+
 
     public void MakeChoice(string targetLabel)
     {

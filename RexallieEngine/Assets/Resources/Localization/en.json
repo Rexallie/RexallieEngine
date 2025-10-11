@@ -9,6 +9,7 @@
     { "key": "ui_auto", "value": "Auto" },
     { "key": "ui_skip", "value": "Skip" },
     { "key": "ui_history", "value": "History" },
-    { "key": "ui_back", "value": "Back" }
+    { "key": "ui_back", "value": "Back" },
+    { "key": "ui_quick_save_notification", "value": "Game Saved!" }
   ]
 }
