@@ -16,6 +16,9 @@ public class SaveSlotUI : MonoBehaviour
     private bool isSaveMode;
     private SaveLoadPanel parentPanel;
 
+    // --- NEW: Store the current name ---
+    private string currentSaveName;
+
     public void Configure(int slot, bool isSaving, SaveMetadata metadata, SaveLoadPanel panel)
     {
         slotNumber = slot;
@@ -28,6 +31,9 @@ public class SaveSlotUI : MonoBehaviour
             timestampText.text = metadata.timestamp;
             playtimeText.text = FormatPlaytime(metadata.totalPlaytime);
 
+            // --- NEW: Store the name ---
+            currentSaveName = metadata.saveName;
+
             Texture2D screenshot = LoadScreenshot(metadata.screenshotPath);
             if (screenshot != null)
             {
@@ -36,9 +42,13 @@ public class SaveSlotUI : MonoBehaviour
         }
         else
         {
-            slotNameText.text = $"Empty Slot {slotNumber + 1}";
+            string emptySlotName = $"Empty Slot {slotNumber + 1}";
+            slotNameText.text = emptySlotName;
             timestampText.text = "--:--:--";
             playtimeText.text = "00:00:00";
+
+            // --- NEW: Store the default name ---
+            currentSaveName = emptySlotName;
         }
 
         slotButton.onClick.RemoveAllListeners();
@@ -49,9 +59,7 @@ public class SaveSlotUI : MonoBehaviour
     {
         if (isSaveMode)
         {
-            string saveName = $"Save {slotNumber + 1}";
-            // Pass the parent panel's Refresh method as the action to perform on completion.
-            SaveManager.Instance.SaveGame(slotNumber, saveName, parentPanel.Refresh);
+            parentPanel.ShowRenamePrompt(slotNumber, currentSaveName);
         }
         else
         {

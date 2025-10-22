@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 [RequireComponent(typeof(CanvasGroup))]
 public class SaveLoadPanel : MonoBehaviour
@@ -10,6 +11,13 @@ public class SaveLoadPanel : MonoBehaviour
     [SerializeField] private RectTransform contentArea;
     [SerializeField] private Button closeButton;
 
+    // --- NEW: References for the Rename Panel ---
+    [Header("Rename Panel")]
+    [SerializeField] private GameObject renamePanel;
+    [SerializeField] private TMP_InputField nameInputField;
+    [SerializeField] private Button confirmRenameButton;
+    [SerializeField] private Button cancelRenameButton;
+
     [Header("Animation Settings")]
     [SerializeField] private float animationDuration = 0.3f;
     [SerializeField] private float startScale = 0.9f;
@@ -17,6 +25,9 @@ public class SaveLoadPanel : MonoBehaviour
     private bool isSaveMode;
     private CanvasGroup canvasGroup;
     private Coroutine animationCoroutine;
+
+    // --- NEW: To store which slot we are saving to ---
+    private int currentSlotToSave;
 
     void Awake()
     {
@@ -30,6 +41,11 @@ public class SaveLoadPanel : MonoBehaviour
     void Start()
     {
         closeButton.onClick.AddListener(Hide);
+
+        // --- NEW: Hook up the rename panel buttons ---
+        confirmRenameButton.onClick.AddListener(OnConfirmRename);
+        cancelRenameButton.onClick.AddListener(HideRenamePrompt);
+        renamePanel.SetActive(false);
     }
 
     public void Show(bool isSaving)
@@ -65,6 +81,32 @@ public class SaveLoadPanel : MonoBehaviour
             SaveSlotUI slotUI = newSlot.GetComponent<SaveSlotUI>();
             slotUI.Configure(i, isSaveMode, metadata, this);
         }
+    }
+
+    public void ShowRenamePrompt(int slotNumber, string currentName)
+    {
+        currentSlotToSave = slotNumber;
+        nameInputField.text = currentName;
+        renamePanel.SetActive(true);
+        // We can add a fade/scale animation to this panel as well,
+        // but for now, we'll just show it.
+    }
+
+    private void HideRenamePrompt()
+    {
+        renamePanel.SetActive(false);
+    }
+
+    private void OnConfirmRename()
+    {
+        string newName = nameInputField.text;
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            newName = "Save " + (currentSlotToSave + 1);
+        }
+
+        SaveManager.Instance.SaveGame(currentSlotToSave, newName, Refresh);
+        HideRenamePrompt();
     }
 
     private IEnumerator ShowPanelCoroutine(bool isSaving)
