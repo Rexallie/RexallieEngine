@@ -22,13 +22,26 @@ public class DialogueAnimator : MonoBehaviour
         textField = GetComponent<TextMeshProUGUI>();
     }
 
-    public void ShowText(string text)
+    public void ShowText(string text, bool instant = false)
     {
         if (typewriterCoroutine != null)
         {
             StopCoroutine(typewriterCoroutine);
         }
-        typewriterCoroutine = StartCoroutine(TypewriterEffect(text));
+
+        textField.text = text;
+
+        if (instant)
+        {
+            // If instant, reveal all characters immediately and stop.
+            textField.maxVisibleCharacters = textField.textInfo.characterCount;
+            IsAnimating = false;
+        }
+        else
+        {
+            // Otherwise, start the typewriter coroutine.
+            typewriterCoroutine = StartCoroutine(TypewriterEffect(text));
+        }
     }
 
     // NEW: A public method to instantly finish the animation.

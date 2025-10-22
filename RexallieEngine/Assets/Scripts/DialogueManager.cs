@@ -233,6 +233,10 @@ public class DialogueManager : MonoBehaviour
 {
     public static DialogueManager Instance { get; private set; }
 
+    [Header("Skip Settings")]
+    [Tooltip("The minimum time a line is visible when skipping (in seconds).")]
+    [SerializeField] private float skipDelay = 0.1f;
+
     private ScriptData currentScript;
     private int currentNodeIndex = 0;
     private DialogueScriptParser parser;
@@ -242,6 +246,7 @@ public class DialogueManager : MonoBehaviour
     // --- THIS IS THE KEY CHANGE ---
     // The IsSkipping property is now public so the UIManager can control it.
     // The local 'readDialogueIDs' set has been removed.
+    public bool IsAutoMode { get; set; } = false;
     public bool IsSkipping { get; set; } = false;
 
     public event Action<DialogueLine> OnDialogueLineDisplayed;
@@ -411,7 +416,16 @@ public class DialogueManager : MonoBehaviour
 
         if (IsSkipping)
         {
-            yield return null; // Wait one frame to avoid stack overflow
+            // --- THIS IS THE KEY CHANGE ---
+            // If the node we just showed was a dialogue line, wait for the minimum delay.
+            if (node is DialogueLine)
+            {
+                yield return new WaitForSeconds(skipDelay);
+            }
+            else // Actions can still process instantly
+            {
+                yield return null;
+            }
             AdvanceDialogue();
         }
     }
@@ -471,5 +485,10 @@ public class DialogueManager : MonoBehaviour
     public bool IsDialogueActive()
     {
         return currentScript != null && currentNodeIndex < currentScript.nodes.Count;
+    }
+
+    public bool IsWaitingForChoice()
+    {
+        return isWaitingOnChoice;
     }
 }

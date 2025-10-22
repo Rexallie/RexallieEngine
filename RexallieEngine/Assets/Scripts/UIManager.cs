@@ -48,6 +48,13 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button quickSaveButton; // <-- ADDED
     [SerializeField] private Button quickLoadButton; // <-- ADDED
     [SerializeField] private Button skipButton; // <-- ADD THIS
+    [SerializeField] private Button autoButton;
+
+    // --- NEW: For Auto Mode ---
+    [Header("Auto Mode Settings")]
+    [Tooltip("The delay in seconds after text finishes typing before auto-advancing.")]
+    [SerializeField] private float autoAdvanceDelay = 2.0f;
+    private float autoAdvanceTimer = 0f;
 
 
     private void Awake()
@@ -117,8 +124,21 @@ public class UIManager : MonoBehaviour
             skipButton.onClick.AddListener(ToggleSkipMode);
         }
 
+        if (autoButton != null && DialogueManager.Instance != null)
+        {
+            autoButton.onClick.AddListener(ToggleAutoMode);
+        }
+
         DialogueManager.Instance.LoadScriptFromFile("en", "ui_test");
         DialogueManager.Instance.AdvanceDialogue();
+    }
+
+    void Update()
+    {
+        if (DialogueManager.Instance.IsAutoMode)
+        {
+            CheckAutoAdvance();
+        }
     }
 
     void OnDestroy()
@@ -135,6 +155,11 @@ public class UIManager : MonoBehaviour
 
     private void OnAdvanceDialogue(InputAction.CallbackContext context)
     {
+        if (DialogueManager.Instance.IsAutoMode)
+        {
+            DialogueManager.Instance.IsAutoMode = false;
+        }
+
         if (DialogueManager.Instance.IsSkipping)
         {
             DialogueManager.Instance.IsSkipping = false;
@@ -160,7 +185,10 @@ public class UIManager : MonoBehaviour
 
         if (dialogueAnimator != null)
         {
-            dialogueAnimator.ShowText(line.text);
+            // --- THIS IS THE KEY CHANGE ---
+            // Check if we are skipping and pass that to the ShowText method.
+            bool instant = DialogueManager.Instance.IsSkipping;
+            dialogueAnimator.ShowText(line.text, instant);
         }
         else
         {
@@ -168,6 +196,52 @@ public class UIManager : MonoBehaviour
         }
 
         DialogueLogManager.Instance.AddLog(displayName, line.text);
+    }
+
+    // --- NEW: Method to toggle Auto mode ---
+    private void ToggleAutoMode()
+    {
+        if (DialogueManager.Instance == null) return;
+
+        // Toggle the state
+        DialogueManager.Instance.IsAutoMode = !DialogueManager.Instance.IsAutoMode;
+
+        if (DialogueManager.Instance.IsAutoMode)
+        {
+            // If we just turned Auto ON:
+            // 1. Turn Skip OFF (they are mutually exclusive)
+            DialogueManager.Instance.IsSkipping = false;
+
+            // 2. Start the timer for the first advance
+            autoAdvanceTimer = autoAdvanceDelay;
+        }
+    }
+
+    // --- NEW: The logic that runs every frame during Auto mode ---
+    private void CheckAutoAdvance()
+    {
+        // Don't do anything if the text is still typing
+        if (dialogueAnimator != null && dialogueAnimator.IsAnimating)
+        {
+            autoAdvanceTimer = autoAdvanceDelay; // Reset the timer
+            return;
+        }
+
+        // Don't do anything if the DialogueManager is waiting for a choice
+        if (DialogueManager.Instance.IsWaitingForChoice())
+        {
+            DialogueManager.Instance.IsAutoMode = false; // Stop auto-mode at choices
+            return;
+        }
+
+        // Count down the timer
+        autoAdvanceTimer -= Time.deltaTime;
+        if (autoAdvanceTimer <= 0)
+        {
+            // Timer is up! Advance the dialogue and reset the timer.
+            DialogueManager.Instance.AdvanceDialogue();
+            autoAdvanceTimer = autoAdvanceDelay;
+        }
     }
 
     private void ToggleSkipMode()
@@ -182,6 +256,7 @@ public class UIManager : MonoBehaviour
         // This avoids the OnAdvanceDialogue method which is meant to CANCEL the skip.
         if (DialogueManager.Instance.IsSkipping)
         {
+            DialogueManager.Instance.IsAutoMode = false; // Turn Auto OFF
             DialogueManager.Instance.AdvanceDialogue();
         }
     }
