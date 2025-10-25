@@ -332,10 +332,13 @@ public class DialogueManager : MonoBehaviour
                 }
                 else if (nextNode is DialogueLine line)
                 {
-                    string lineID = $"{currentScriptName}_{line.lineNumber}";
-                    if (!PersistentDataManager.Instance.IsLineRead(lineID))
+                    if (SettingsManager.Instance.currentSettings.skipUnreadText)
                     {
-                        IsSkipping = false;
+                        string lineID = $"{currentScriptName}_{line.lineNumber}";
+                        if (PersistentDataManager.Instance != null && !PersistentDataManager.Instance.IsLineRead(lineID))
+                        {
+                            IsSkipping = false;
+                        }
                     }
                 }
             }

@@ -50,6 +50,13 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button skipButton; // <-- ADD THIS
     [SerializeField] private Button autoButton;
 
+    [Header("Preferences")]
+    [SerializeField] private PreferencesPanel preferencesPanel;
+    [SerializeField] private Button preferencesButton;
+
+    [Header("Dialogue UI Opacity")]
+    [SerializeField] private CanvasGroup dialogueMasterCanvasGroup; // Parent of DialoguePanel and SpeakerNamePanel
+
     // --- NEW: For Auto Mode ---
     [Header("Auto Mode Settings")]
     [Tooltip("The delay in seconds after text finishes typing before auto-advancing.")]
@@ -127,6 +134,11 @@ public class UIManager : MonoBehaviour
         if (autoButton != null && DialogueManager.Instance != null)
         {
             autoButton.onClick.AddListener(ToggleAutoMode);
+        }
+
+        if (preferencesButton != null && preferencesPanel != null)
+        {
+            preferencesButton.onClick.AddListener(preferencesPanel.Show);
         }
 
         DialogueManager.Instance.LoadScriptFromFile("en", "ui_test");
@@ -214,6 +226,19 @@ public class UIManager : MonoBehaviour
 
             // 2. Start the timer for the first advance
             autoAdvanceTimer = autoAdvanceDelay;
+        }
+    }
+
+    public void SetAutoAdvanceDelay(float delay)
+    {
+        autoAdvanceDelay = delay;
+    }
+
+    public void SetDialogueOpacity(float opacity)
+    {
+        if (dialogueMasterCanvasGroup != null)
+        {
+            dialogueMasterCanvasGroup.alpha = opacity;
         }
     }
 

@@ -44,6 +44,13 @@ public class DialogueAnimator : MonoBehaviour
         }
     }
 
+    public void SetTypeSpeed(float speed)
+    {
+        fastSpeed = speed; // For simplicity, we'll just set the fast speed for now.
+                           // You could have separate sliders or logic if desired.
+                           // slowSpeed could also be adjusted here, perhaps proportionally.
+    }
+
     // NEW: A public method to instantly finish the animation.
     public void FinishAnimation()
     {
