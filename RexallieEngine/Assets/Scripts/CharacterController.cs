@@ -269,7 +269,16 @@ public class CharacterController : MonoBehaviour
         Vector2 startPosition = rectTransform.anchoredPosition;
 
         float maxDuration = Mathf.Max(fadeDuration, moveDuration);
-        if (maxDuration <= 0) maxDuration = float.Epsilon;
+        if (maxDuration <= 0.001f)
+        {
+            SetAlpha(endAlpha);
+            rectTransform.anchoredPosition = moveTargetPosition;
+            if (!isShowing)
+            {
+                gameObject.SetActive(false);
+            }
+            yield break;
+        }
 
         float startTime = Time.time;
         float elapsed = 0f;
@@ -297,10 +306,7 @@ public class CharacterController : MonoBehaviour
         }
 
         SetAlpha(endAlpha);
-        if (moveDuration > 0)
-        {
-            rectTransform.anchoredPosition = moveTargetPosition;
-        }
+        rectTransform.anchoredPosition = moveTargetPosition;
 
         if (!isShowing)
         {

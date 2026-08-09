@@ -150,6 +150,7 @@ public class ActionExecutor : MonoBehaviour
     private IEnumerator ExecuteShowUI(ActionNode action)
     {
         float duration = float.Parse(action.parameters.GetValueOrDefault("time", "0.5"), System.Globalization.CultureInfo.InvariantCulture);
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
 
         isExecutingAction = true;
         UIManager.Instance.ShowUI(duration);
@@ -160,6 +161,7 @@ public class ActionExecutor : MonoBehaviour
     private IEnumerator ExecuteHideUI(ActionNode action)
     {
         float duration = float.Parse(action.parameters.GetValueOrDefault("time", "0.5"), System.Globalization.CultureInfo.InvariantCulture);
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
 
         isExecutingAction = true;
         UIManager.Instance.HideUI(duration);
@@ -305,6 +307,7 @@ public class ActionExecutor : MonoBehaviour
         string character = action.parameters.GetValueOrDefault("param1", "");
         string position = action.parameters.GetValueOrDefault("param2", "center");
         float duration = float.Parse(action.parameters.GetValueOrDefault("param3", "0.5"));
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
 
         if (characterManager != null)
         {
@@ -321,6 +324,7 @@ public class ActionExecutor : MonoBehaviour
         string character = action.parameters.GetValueOrDefault("param1", "");
         string position = action.parameters.GetValueOrDefault("param2", "center");
         float duration = float.Parse(action.parameters.GetValueOrDefault("param3", "0.5"));
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
 
         if (characterManager != null)
         {
@@ -361,6 +365,7 @@ public class ActionExecutor : MonoBehaviour
         // @setBackground bg_school_hallway fade
         string backgroundName = action.parameters.GetValueOrDefault("param1", "");
         string transition = action.parameters.GetValueOrDefault("param2", "instant");
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) transition = "instant";
 
         if (backgroundManager != null)
         {
@@ -410,6 +415,7 @@ public class ActionExecutor : MonoBehaviour
     {
         // @wait 1.0
         float duration = float.Parse(action.parameters.GetValueOrDefault("param1", "1"));
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
         isExecutingAction = true;
         // USE REALTIME WAIT
         yield return new WaitForSecondsRealtime(duration);
@@ -422,17 +428,17 @@ public class ActionExecutor : MonoBehaviour
         float duration = float.Parse(action.parameters.GetValueOrDefault("param1", "0.5f"), System.Globalization.CultureInfo.InvariantCulture);
         // Note: A larger magnitude (e.g., 10-20) works well for UI shakes.
         float magnitude = float.Parse(action.parameters.GetValueOrDefault("param2", "15f"), System.Globalization.CultureInfo.InvariantCulture);
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
 
         isExecutingAction = true;
 
         // Call the new shake coroutine on the SceneEffectsManager.
-        if (SceneEffectsManager.Instance != null)
+        if (SceneEffectsManager.Instance != null && duration > 0f)
         {
             yield return SceneEffectsManager.Instance.Shake(duration, magnitude);
         }
-        else
+        else if (duration > 0f)
         {
-            Debug.LogWarning("SceneEffectsManager not found in scene. Cannot execute shake.");
             yield return new WaitForSeconds(duration); // Still wait for the specified duration
         }
 
@@ -444,9 +450,13 @@ public class ActionExecutor : MonoBehaviour
         // @fade black duration:1.0
         // This is a placeholder - you'd implement with a UI fade panel
         float duration = float.Parse(action.parameters.GetValueOrDefault("duration", "1.0"));
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
 
         isExecutingAction = true;
-        yield return new WaitForSeconds(duration);
+        if (duration > 0f)
+        {
+            yield return new WaitForSeconds(duration);
+        }
         isExecutingAction = false;
     }
 
@@ -459,9 +469,13 @@ public class ActionExecutor : MonoBehaviour
 
             // Get the current duration if specified, otherwise default to 1 second for the reset
             float duration = float.Parse(action.parameters.GetValueOrDefault("time", "1.0"), System.Globalization.CultureInfo.InvariantCulture);
+            if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
 
             SceneEffectsManager.Instance.Zoom(Vector2.zero, 0, duration);
-            yield return new WaitForSeconds(duration);
+            if (duration > 0f)
+            {
+                yield return new WaitForSeconds(duration);
+            }
 
             isExecutingAction = false;
             yield break;
@@ -472,12 +486,16 @@ public class ActionExecutor : MonoBehaviour
         float y = float.Parse(action.parameters.GetValueOrDefault("y", "0"), System.Globalization.CultureInfo.InvariantCulture);
         float percentage = float.Parse(action.parameters.GetValueOrDefault("percentage", "0"), System.Globalization.CultureInfo.InvariantCulture);
         float time = float.Parse(action.parameters.GetValueOrDefault("time", "1.0"), System.Globalization.CultureInfo.InvariantCulture);
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) time = 0f;
 
         // Tell the DialogueManager to wait for this animation
         isExecutingAction = true;
 
         SceneEffectsManager.Instance.Zoom(new Vector2(x, y), percentage, time);
-        yield return new WaitForSeconds(time);
+        if (time > 0f)
+        {
+            yield return new WaitForSeconds(time);
+        }
 
         isExecutingAction = false;
     }

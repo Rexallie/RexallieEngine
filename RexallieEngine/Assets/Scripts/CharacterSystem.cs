@@ -162,6 +162,12 @@ public class CharacterManager : MonoBehaviour
         string slideFromDir = action.parameters.GetValueOrDefault("slideFrom", "");
         float slideDuration = float.Parse(action.parameters.GetValueOrDefault("slideDuration", fadeDuration.ToString()), System.Globalization.CultureInfo.InvariantCulture);
 
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping)
+        {
+            fadeDuration = 0f;
+            slideDuration = 0f;
+        }
+
         Vector2 finalPos = new Vector2(GetUIPositionX(positionStr), controller.GetComponent<RectTransform>().anchoredPosition.y);
         Vector2 startPos = finalPos;
 
@@ -184,6 +190,12 @@ public class CharacterManager : MonoBehaviour
         float fadeDuration = float.Parse(action.parameters.GetValueOrDefault("fadeOut", "0"), System.Globalization.CultureInfo.InvariantCulture);
         string slideToDir = action.parameters.GetValueOrDefault("slideTo", "");
         float slideDuration = float.Parse(action.parameters.GetValueOrDefault("slideDuration", fadeDuration.ToString()), System.Globalization.CultureInfo.InvariantCulture);
+
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping)
+        {
+            fadeDuration = 0f;
+            slideDuration = 0f;
+        }
 
         Vector2 currentPos = controller.GetComponent<RectTransform>().anchoredPosition;
         Vector2 finalPos = currentPos;
