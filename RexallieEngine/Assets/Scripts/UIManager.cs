@@ -231,12 +231,22 @@ public class UIManager : MonoBehaviour
 
         speakerNameText.text = displayName;
 
+        AudioClip voiceBlip = null;
+        if (CharacterManager.Instance != null)
+        {
+            CharacterData charData = CharacterManager.Instance.GetCharacterData(line.speakerID);
+            if (charData != null)
+            {
+                voiceBlip = charData.voiceBlip;
+            }
+        }
+
         if (dialogueAnimator != null)
         {
             // --- THIS IS THE KEY CHANGE ---
             // Check if we are skipping and pass that to the ShowText method.
             bool instant = DialogueManager.Instance.IsSkipping;
-            dialogueAnimator.ShowText(line.text, instant);
+            dialogueAnimator.ShowText(line.text, voiceBlip, instant);
         }
         else
         {
@@ -787,4 +797,7 @@ public class UIManager : MonoBehaviour
             }
         }
     }
+
+    public string GetCurrentSpeakerName() => speakerNameText != null ? speakerNameText.text : "";
+    public string GetCurrentDialogueText() => dialogueText != null ? dialogueText.text : "";
 }

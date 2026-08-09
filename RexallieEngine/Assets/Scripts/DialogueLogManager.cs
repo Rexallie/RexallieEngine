@@ -42,4 +42,9 @@ public class DialogueLogManager : MonoBehaviour
     {
         return new List<LogEntry>(log);
     }
+
+    public void ClearLog()
+    {
+        log.Clear();
+    }
 }

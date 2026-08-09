@@ -23,10 +23,12 @@ public class LogEntryUI : MonoBehaviour
         }
     }
 
+    [SerializeField] private Button rowButton;
+
     /// <summary>
     /// Populates the log entry and calculates its required height.
     /// </summary>
-    public void SetData(string speaker, string dialogue)
+    public void SetData(string speaker, string dialogue, System.Action onClickAction = null)
     {
         speakerNameText.text = speaker;
         dialogueText.text = dialogue;
@@ -38,5 +40,19 @@ public class LogEntryUI : MonoBehaviour
 
         // Set the preferred height of this entire UI element so the layout group can use it.
         layoutElement.preferredHeight = speakerHeight + dialogueHeight + verticalPadding;
+
+        if (rowButton == null)
+        {
+            rowButton = GetComponent<Button>();
+        }
+
+        if (rowButton != null)
+        {
+            rowButton.onClick.RemoveAllListeners();
+            if (onClickAction != null)
+            {
+                rowButton.onClick.AddListener(() => onClickAction());
+            }
+        }
     }
 }

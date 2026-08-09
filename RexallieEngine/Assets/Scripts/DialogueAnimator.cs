@@ -22,7 +22,7 @@ public class DialogueAnimator : MonoBehaviour
         textField = GetComponent<TextMeshProUGUI>();
     }
 
-    public void ShowText(string text, bool instant = false)
+    public void ShowText(string text, AudioClip voiceBlip = null, bool instant = false)
     {
         if (typewriterCoroutine != null)
         {
@@ -40,7 +40,7 @@ public class DialogueAnimator : MonoBehaviour
         else
         {
             // Otherwise, start the typewriter coroutine.
-            typewriterCoroutine = StartCoroutine(TypewriterEffect(text));
+            typewriterCoroutine = StartCoroutine(TypewriterEffect(text, voiceBlip));
         }
     }
 
@@ -89,7 +89,7 @@ public class DialogueAnimator : MonoBehaviour
         IsAnimating = false;
     }
 
-    private IEnumerator TypewriterEffect(string text)
+    private IEnumerator TypewriterEffect(string text, AudioClip voiceBlip)
     {
         IsAnimating = true; // Signal that we are starting.
 
@@ -109,6 +109,15 @@ public class DialogueAnimator : MonoBehaviour
         for (int i = 0; i < totalVisibleCharacters; i++)
         {
             textField.maxVisibleCharacters = i + 1;
+
+            if (voiceBlip != null && i % 2 == 0)
+            {
+                if (AudioManager.Instance != null && AudioManager.Instance.voiceSource != null)
+                {
+                    AudioManager.Instance.voiceSource.pitch = Random.Range(0.95f, 1.05f);
+                    AudioManager.Instance.voiceSource.PlayOneShot(voiceBlip);
+                }
+            }
 
             float progress = (totalVisibleCharacters > 1) ? (float)i / (totalVisibleCharacters - 1) : 1;
             float easedProgress = progress * progress;

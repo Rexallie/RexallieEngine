@@ -97,6 +97,11 @@ public class SaveManager : MonoBehaviour
         {
             data.currentScriptName = DialogueManager.Instance.GetCurrentScriptName();
             data.currentNodeIndex = DialogueManager.Instance.GetCurrentNodeIndex();
+            data.metadata.sceneName = DialogueManager.Instance.GetCurrentScriptName();
+        }
+        if (UIManager.Instance != null)
+        {
+            data.metadata.activeCharacter = UIManager.Instance.GetCurrentSpeakerName();
         }
         if (CharacterManager.Instance != null)
             data.activeCharacters = CharacterManager.Instance.GetCharactersState();
@@ -116,6 +121,9 @@ public class SaveManager : MonoBehaviour
 
     private void RestoreGameState(HistoryState data)
     {
+        if (HistoryManager.Instance != null) HistoryManager.Instance.ClearHistory();
+        if (DialogueLogManager.Instance != null) DialogueLogManager.Instance.ClearLog();
+
         if (SceneEffectsManager.Instance != null) SceneEffectsManager.Instance.RestoreState(data.sceneEffectsState);
         if (UIManager.Instance != null) UIManager.Instance.RestoreState(data.uiState);
         if (BackgroundManager.Instance != null) BackgroundManager.Instance.RestoreState(data.currentBackgroundName);

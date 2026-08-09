@@ -11,6 +11,8 @@ public class SaveMetadata
     public string timestamp;
     public float totalPlaytime;
     public string screenshotPath;
+    public string activeCharacter;
+    public string sceneName;
 }
 
 [System.Serializable]

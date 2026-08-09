@@ -51,10 +51,14 @@ public class HistoryPanel : MonoBehaviour
             Destroy(child.gameObject);
         }
 
-        List<LogEntry> history = DialogueLogManager.Instance.GetHistory();
+        List<LogEntry> historyLog = DialogueLogManager.Instance.GetHistory();
+        List<HistoryState> historyStates = HistoryManager.Instance.GetHistory();
 
-        foreach (var entry in history)
+        for (int i = 0; i < historyLog.Count; i++)
         {
+            var entry = historyLog[i];
+            HistoryState state = i < historyStates.Count ? historyStates[i] : null;
+
             GameObject newEntryObj = Instantiate(logEntryPrefab, contentArea);
 
             // --- THIS IS THE KEY CHANGE ---
@@ -62,7 +66,14 @@ public class HistoryPanel : MonoBehaviour
             LogEntryUI logEntry = newEntryObj.GetComponent<LogEntryUI>();
             if (logEntry != null)
             {
-                logEntry.SetData(entry.speakerName, entry.dialogueText);
+                logEntry.SetData(entry.speakerName, entry.dialogueText, () =>
+                {
+                    if (state != null)
+                    {
+                        HistoryManager.Instance.RollbackToState(state);
+                        Hide();
+                    }
+                });
             }
         }
 

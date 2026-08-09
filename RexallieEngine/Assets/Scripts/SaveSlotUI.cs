@@ -29,7 +29,9 @@ public class SaveSlotUI : MonoBehaviour
         {
             slotNameText.text = metadata.saveName;
             timestampText.text = metadata.timestamp;
-            playtimeText.text = FormatPlaytime(metadata.totalPlaytime);
+
+            string displayPlaytime = FormatPlaytime(metadata.totalPlaytime);
+            playtimeText.text = !string.IsNullOrEmpty(metadata.activeCharacter) ? $"{displayPlaytime} | {metadata.activeCharacter}" : displayPlaytime;
 
             // --- NEW: Store the name ---
             currentSaveName = metadata.saveName;

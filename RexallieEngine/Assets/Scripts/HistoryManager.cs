@@ -70,4 +70,41 @@ public class HistoryManager : MonoBehaviour
         // Restore the dialogue state and display the line without creating a new history record.
         DialogueManager.Instance.RestoreState(stateToRestore.currentScriptName, stateToRestore.currentNodeIndex, false);
     }
+
+    public List<HistoryState> GetHistory()
+    {
+        return history;
+    }
+
+    public void ClearHistory()
+    {
+        history.Clear();
+    }
+
+    public void RollbackToState(HistoryState targetState)
+    {
+        int index = history.IndexOf(targetState);
+        if (index < 0)
+        {
+            Debug.LogWarning("Target history state not found.");
+            return;
+        }
+
+        // Discard all states after the target state
+        while (history.Count > index + 1)
+        {
+            history.RemoveAt(history.Count - 1);
+        }
+
+        // Restore everything instantly
+        SceneEffectsManager.Instance.RestoreState(targetState.sceneEffectsState);
+        UIManager.Instance.RestoreState(targetState.uiState);
+        BackgroundManager.Instance.RestoreState(targetState.currentBackgroundName);
+        CharacterManager.Instance.RestoreState(targetState.activeCharacters);
+        AudioManager.Instance.RestoreState(targetState.currentMusicTrackName);
+        VariableManager.Instance.RestoreVariableData(targetState.variables);
+
+        // Restore dialogue state without re-recording
+        DialogueManager.Instance.RestoreState(targetState.currentScriptName, targetState.currentNodeIndex, false);
+    }
 }
