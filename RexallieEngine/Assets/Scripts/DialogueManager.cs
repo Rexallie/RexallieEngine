@@ -256,6 +256,7 @@ public class DialogueManager : MonoBehaviour
 
     // --- NEW: This flag prevents recording history during a restore operation ---
     private bool isRestoringState = false;
+    private Coroutine currentNodeCoroutine;
     void Awake()
     {
         if (Instance == null)
@@ -344,7 +345,8 @@ public class DialogueManager : MonoBehaviour
             }
         }
 
-        StartCoroutine(ProcessCurrentNode());
+        if (currentNodeCoroutine != null) StopCoroutine(currentNodeCoroutine);
+        currentNodeCoroutine = StartCoroutine(ProcessCurrentNode());
     }
 
     private IEnumerator ProcessCurrentNode()
@@ -377,6 +379,7 @@ public class DialogueManager : MonoBehaviour
             {
                 // If it is, unlock and immediately advance to show the choices.
                 isProcessingNode = false;
+                if (isRestoringState) isRestoringState = false;
                 AdvanceDialogue();
                 yield break; // End this processing step.
             }
@@ -385,6 +388,7 @@ public class DialogueManager : MonoBehaviour
         {
             isWaitingOnChoice = true;
             OnChoicePresented?.Invoke(choiceNode.options);
+            if (isRestoringState) isRestoringState = false;
         }
         else if (node is ActionNode actionNode)
         {
@@ -395,8 +399,10 @@ public class DialogueManager : MonoBehaviour
 
             if (isFlowControlAction)
             {
-                // Flow control actions handle their own advancement.
-                // Do nothing here and let the coroutine end.
+                isProcessingNode = false;
+                if (isRestoringState) isRestoringState = false;
+                AdvanceDialogue();
+                yield break;
             }
             else // For all other actions (wait, showCharacter, etc.)
             {
@@ -409,6 +415,7 @@ public class DialogueManager : MonoBehaviour
                     }
                 }
                 isProcessingNode = false;
+                if (isRestoringState) isRestoringState = false;
                 AdvanceDialogue(); // Automatically advance to the next node.
                 yield break;
             }
@@ -438,6 +445,8 @@ public class DialogueManager : MonoBehaviour
     {
         isWaitingOnChoice = false;
         JumpToLabel(targetLabel);
+        isProcessingNode = false;
+        AdvanceDialogue();
     }
 
     public void JumpToLabel(string label)
@@ -445,8 +454,6 @@ public class DialogueManager : MonoBehaviour
         if (currentScript.labels.TryGetValue(label, out int lineIndex))
         {
             currentNodeIndex = FindNodeIndexForLine(lineIndex);
-            isProcessingNode = false;
-            AdvanceDialogue();
         }
         else
         {
@@ -472,6 +479,25 @@ public class DialogueManager : MonoBehaviour
     {
         isRestoringState = true; // Set the flag before restoring
 
+        if (currentNodeCoroutine != null)
+        {
+            StopCoroutine(currentNodeCoroutine);
+            currentNodeCoroutine = null;
+        }
+
+        if (ActionExecutor.Instance != null)
+        {
+            ActionExecutor.Instance.StopAllActions();
+        }
+
+        if (CharacterManager.Instance != null)
+        {
+            CharacterManager.Instance.StopAllCoroutines();
+        }
+
+        isProcessingNode = false;
+        isWaitingOnChoice = false;
+
         LoadScriptFromFile("en", scriptName);
         currentNodeIndex = nodeIndex;
 
@@ -481,7 +507,7 @@ public class DialogueManager : MonoBehaviour
         }
         else
         {
-            StartCoroutine(ProcessCurrentNode());
+            currentNodeCoroutine = StartCoroutine(ProcessCurrentNode());
         }
     }
 

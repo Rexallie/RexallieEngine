@@ -139,7 +139,7 @@ public class CharacterManager : MonoBehaviour
             {
                 float targetX = GetUIPositionX(position);
                 Vector2 targetPosition = new Vector2(targetX, controller.GetComponent<RectTransform>().anchoredPosition.y);
-                yield return controller.StartCoroutine(controller.MoveToUIPositionCoroutine(targetPosition, duration));
+                yield return StartCoroutine(controller.MoveToUIPositionCoroutine(targetPosition, duration));
             }
             else
             {
@@ -160,7 +160,11 @@ public class CharacterManager : MonoBehaviour
 
         float fadeDuration = float.Parse(action.parameters.GetValueOrDefault("fadeIn", "0"), System.Globalization.CultureInfo.InvariantCulture);
         string slideFromDir = action.parameters.GetValueOrDefault("slideFrom", "");
-        float slideDuration = float.Parse(action.parameters.GetValueOrDefault("slideDuration", fadeDuration.ToString()), System.Globalization.CultureInfo.InvariantCulture);
+        float slideDuration = fadeDuration;
+        if (action.parameters.ContainsKey("slideDuration"))
+        {
+            slideDuration = float.Parse(action.parameters["slideDuration"], System.Globalization.CultureInfo.InvariantCulture);
+        }
 
         if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping)
         {
@@ -177,7 +181,7 @@ public class CharacterManager : MonoBehaviour
             controller.GetComponent<RectTransform>().anchoredPosition = startPos;
         }
 
-        yield return controller.StartCoroutine(controller.AnimateAppearance(true, fadeDuration, slideDuration, finalPos));
+        yield return StartCoroutine(controller.AnimateAppearance(true, fadeDuration, slideDuration, finalPos));
     }
 
     public IEnumerator HideCharacterWithEffect(ActionNode action)
@@ -189,7 +193,11 @@ public class CharacterManager : MonoBehaviour
 
         float fadeDuration = float.Parse(action.parameters.GetValueOrDefault("fadeOut", "0"), System.Globalization.CultureInfo.InvariantCulture);
         string slideToDir = action.parameters.GetValueOrDefault("slideTo", "");
-        float slideDuration = float.Parse(action.parameters.GetValueOrDefault("slideDuration", fadeDuration.ToString()), System.Globalization.CultureInfo.InvariantCulture);
+        float slideDuration = fadeDuration;
+        if (action.parameters.ContainsKey("slideDuration"))
+        {
+            slideDuration = float.Parse(action.parameters["slideDuration"], System.Globalization.CultureInfo.InvariantCulture);
+        }
 
         if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping)
         {
@@ -205,7 +213,7 @@ public class CharacterManager : MonoBehaviour
             finalPos = GetOffscreenPosition(currentPos, slideToDir);
         }
 
-        yield return controller.StartCoroutine(controller.AnimateAppearance(false, fadeDuration, slideDuration, finalPos));
+        yield return StartCoroutine(controller.AnimateAppearance(false, fadeDuration, slideDuration, finalPos));
     }
 
     private Vector2 GetOffscreenPosition(Vector2 basePos, string direction)

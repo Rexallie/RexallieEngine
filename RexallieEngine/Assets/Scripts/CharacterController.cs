@@ -73,6 +73,14 @@ public class CharacterController : MonoBehaviour
 
     public void SetHighlightState(bool isHighlighted)
     {
+        if (!gameObject.activeInHierarchy)
+        {
+            Color targetColor = isHighlighted ? Color.white : dimColor;
+            if (portraitImage != null) portraitImage.color = targetColor;
+            if (expressionImage != null) expressionImage.color = targetColor;
+            return;
+        }
+
         if (highlightCoroutine != null)
         {
             StopCoroutine(highlightCoroutine);
@@ -224,9 +232,11 @@ public class CharacterController : MonoBehaviour
 
         while (Vector2.Distance(rectTransform.anchoredPosition, targetPosition) > 0.01f)
         {
+            if (this == null || rectTransform == null) yield break;
             rectTransform.anchoredPosition = Vector2.Lerp(rectTransform.anchoredPosition, targetPosition, moveSpeed * Time.deltaTime);
             yield return null;
         }
+        if (this == null || rectTransform == null) yield break;
         rectTransform.anchoredPosition = targetPosition;
     }
 
@@ -241,6 +251,7 @@ public class CharacterController : MonoBehaviour
 
         while (elapsed < duration)
         {
+            if (this == null || rectTransform == null) yield break;
             elapsed = Time.time - startTime;
             float progress = Mathf.Clamp01(elapsed / duration);
             // --- EASING APPLIED ---
@@ -250,6 +261,7 @@ public class CharacterController : MonoBehaviour
             yield return null;
         }
 
+        if (this == null || rectTransform == null) yield break;
         rectTransform.anchoredPosition = targetPosition;
     }
 
@@ -285,26 +297,27 @@ public class CharacterController : MonoBehaviour
 
         while (elapsed < maxDuration)
         {
+            if (this == null || rectTransform == null) yield break;
             elapsed = Time.time - startTime;
-            float progress = Mathf.Clamp01(elapsed / maxDuration);
-            // --- EASING APPLIED ---
-            float easedProgress = Easing.EaseOutQuad(progress);
 
             if (fadeDuration > 0)
             {
                 float fadeProgress = Mathf.Clamp01(elapsed / fadeDuration);
-                SetAlpha(Mathf.Lerp(startAlpha, endAlpha, easedProgress));
+                float easedFade = Easing.EaseOutQuad(fadeProgress);
+                SetAlpha(Mathf.Lerp(startAlpha, endAlpha, easedFade));
             }
 
             if (moveDuration > 0)
             {
                 float moveProgress = Mathf.Clamp01(elapsed / moveDuration);
-                rectTransform.anchoredPosition = Vector2.Lerp(startPosition, moveTargetPosition, easedProgress);
+                float easedMove = Easing.EaseOutQuad(moveProgress);
+                rectTransform.anchoredPosition = Vector2.Lerp(startPosition, moveTargetPosition, easedMove);
             }
 
             yield return null;
         }
 
+        if (this == null || rectTransform == null) yield break;
         SetAlpha(endAlpha);
         rectTransform.anchoredPosition = moveTargetPosition;
 
@@ -352,6 +365,7 @@ public class CharacterController : MonoBehaviour
 
         while (elapsed < duration)
         {
+            if (this == null || canvasGroup == null) yield break;
             elapsed = Time.time - startTime;
             float progress = Mathf.Clamp01(elapsed / duration);
             // --- EASING APPLIED ---
@@ -361,6 +375,7 @@ public class CharacterController : MonoBehaviour
             yield return null;
         }
 
+        if (this == null || canvasGroup == null) yield break;
         SetAlpha(targetAlpha);
         onComplete?.Invoke();
     }

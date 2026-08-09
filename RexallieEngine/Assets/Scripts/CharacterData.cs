@@ -22,6 +22,12 @@ public class CharacterData : ScriptableObject
     [Header("Audio")]
     public AudioClip voiceBlip; // Optional: text blip sound for this character
 
+    [Header("Default Fallbacks")]
+    [Tooltip("Default texture to use for outfits if a specific one is not found.")]
+    public Sprite defaultOutfit;
+    [Tooltip("Default texture to use for expressions if a specific one is not found.")]
+    public Sprite defaultExpression;
+
     // Helper method to get a specific portrait
     public Sprite GetPortrait(string portraitName)
     {
@@ -29,8 +35,14 @@ public class CharacterData : ScriptableObject
         if (portrait != null)
             return portrait.sprite;
 
-        Debug.LogWarning($"Portrait not found: {portraitName} for character {characterName}");
-        return null;
+        if (defaultOutfit != null)
+        {
+            Debug.LogWarning($"Portrait '{portraitName}' not found for character {characterName}. Falling back to defaultOutfit.");
+            return defaultOutfit;
+        }
+
+        Debug.LogWarning($"Portrait '{portraitName}' not found for character {characterName}. Falling back to default portrait.");
+        return GetDefaultPortrait();
     }
 
     // Helper method to get a specific expression overlay
@@ -40,8 +52,14 @@ public class CharacterData : ScriptableObject
         if (expression != null)
             return expression.sprite;
 
-        Debug.LogWarning($"Expression not found: {expressionName} for character {characterName}");
-        return null;
+        if (defaultExpression != null)
+        {
+            Debug.LogWarning($"Expression '{expressionName}' not found for character {characterName}. Falling back to defaultExpression.");
+            return defaultExpression;
+        }
+
+        Debug.LogWarning($"Expression '{expressionName}' not found for character {characterName}. Falling back to default expression.");
+        return GetDefaultExpression();
     }
 
     // Get default portrait

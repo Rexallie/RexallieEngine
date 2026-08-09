@@ -45,6 +45,12 @@ public class ActionExecutor : MonoBehaviour
         }
     }
 
+    public void StopAllActions()
+    {
+        StopAllCoroutines();
+        isExecutingAction = false;
+    }
+
     public void ExecuteAction(ActionNode action)
     {
         switch (action.action.ToLower())
@@ -63,6 +69,7 @@ public class ActionExecutor : MonoBehaviour
                 ExecuteClearDialogue(action);
                 break;
             case "unlockcg":
+            case "unlock_cg":
                 ExecuteUnlockCG(action);
                 break;
 
@@ -149,24 +156,36 @@ public class ActionExecutor : MonoBehaviour
 
     private IEnumerator ExecuteShowUI(ActionNode action)
     {
-        float duration = float.Parse(action.parameters.GetValueOrDefault("time", "0.5"), System.Globalization.CultureInfo.InvariantCulture);
-        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
-
         isExecutingAction = true;
-        UIManager.Instance.ShowUI(duration);
-        yield return new WaitForSeconds(duration);
-        isExecutingAction = false;
+        try
+        {
+            float duration = float.Parse(action.parameters.GetValueOrDefault("time", "0.5"), System.Globalization.CultureInfo.InvariantCulture);
+            if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
+
+            UIManager.Instance.ShowUI(duration);
+            yield return new WaitForSeconds(duration);
+        }
+        finally
+        {
+            isExecutingAction = false;
+        }
     }
 
     private IEnumerator ExecuteHideUI(ActionNode action)
     {
-        float duration = float.Parse(action.parameters.GetValueOrDefault("time", "0.5"), System.Globalization.CultureInfo.InvariantCulture);
-        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
-
         isExecutingAction = true;
-        UIManager.Instance.HideUI(duration);
-        yield return new WaitForSeconds(duration);
-        isExecutingAction = false;
+        try
+        {
+            float duration = float.Parse(action.parameters.GetValueOrDefault("time", "0.5"), System.Globalization.CultureInfo.InvariantCulture);
+            if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
+
+            UIManager.Instance.HideUI(duration);
+            yield return new WaitForSeconds(duration);
+        }
+        finally
+        {
+            isExecutingAction = false;
+        }
     }
 
     private void ExecuteClearDialogue(ActionNode action)
@@ -266,8 +285,14 @@ public class ActionExecutor : MonoBehaviour
             if (hasEffect)
             {
                 isExecutingAction = true;
-                yield return characterManager.StartCoroutine(characterManager.ShowCharacterWithEffect(action));
-                isExecutingAction = false;
+                try
+                {
+                    yield return characterManager.StartCoroutine(characterManager.ShowCharacterWithEffect(action));
+                }
+                finally
+                {
+                    isExecutingAction = false;
+                }
             }
             else // No effects, show instantly
             {
@@ -291,8 +316,14 @@ public class ActionExecutor : MonoBehaviour
             if (hasEffect)
             {
                 isExecutingAction = true;
-                yield return characterManager.StartCoroutine(characterManager.HideCharacterWithEffect(action));
-                isExecutingAction = false;
+                try
+                {
+                    yield return characterManager.StartCoroutine(characterManager.HideCharacterWithEffect(action));
+                }
+                finally
+                {
+                    isExecutingAction = false;
+                }
             }
             else // No effects, hide instantly
             {
@@ -304,17 +335,23 @@ public class ActionExecutor : MonoBehaviour
     private IEnumerator ExecuteMoveCharacterAndWait(ActionNode action)
     {
         isExecutingAction = true; // Signal to DialogueManager that we are busy
-        string character = action.parameters.GetValueOrDefault("param1", "");
-        string position = action.parameters.GetValueOrDefault("param2", "center");
-        float duration = float.Parse(action.parameters.GetValueOrDefault("param3", "0.5"));
-        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
-
-        if (characterManager != null)
+        try
         {
-            // Start and wait for the CharacterManager's move coroutine
-            yield return characterManager.StartCoroutine(characterManager.MoveCharacterAndWait(character, position, duration));
+            string character = action.parameters.GetValueOrDefault("param1", "");
+            string position = action.parameters.GetValueOrDefault("param2", "center");
+            float duration = float.Parse(action.parameters.GetValueOrDefault("param3", "0.5"), System.Globalization.CultureInfo.InvariantCulture);
+            if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
+
+            if (characterManager != null)
+            {
+                // Start and wait for the CharacterManager's move coroutine
+                yield return characterManager.StartCoroutine(characterManager.MoveCharacterAndWait(character, position, duration));
+            }
         }
-        isExecutingAction = false; // Signal that we are finished
+        finally
+        {
+            isExecutingAction = false; // Signal that we are finished
+        }
     }
 
 
@@ -323,7 +360,7 @@ public class ActionExecutor : MonoBehaviour
         // @moveCharacter alice center 0.5
         string character = action.parameters.GetValueOrDefault("param1", "");
         string position = action.parameters.GetValueOrDefault("param2", "center");
-        float duration = float.Parse(action.parameters.GetValueOrDefault("param3", "0.5"));
+        float duration = float.Parse(action.parameters.GetValueOrDefault("param3", "0.5"), System.Globalization.CultureInfo.InvariantCulture);
         if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
 
         if (characterManager != null)
@@ -379,7 +416,7 @@ public class ActionExecutor : MonoBehaviour
     {
         // @playMusic morning_theme fadeIn:2.0
         string trackName = action.parameters.GetValueOrDefault("param1", "");
-        float fadeIn = float.Parse(action.parameters.GetValueOrDefault("fadeIn", "0"));
+        float fadeIn = float.Parse(action.parameters.GetValueOrDefault("fadeIn", "0"), System.Globalization.CultureInfo.InvariantCulture);
 
         if (audioManager != null)
         {
@@ -390,7 +427,7 @@ public class ActionExecutor : MonoBehaviour
     private void ExecuteStopMusic(ActionNode action)
     {
         // @stopMusic fadeOut:2.0
-        float fadeOut = float.Parse(action.parameters.GetValueOrDefault("fadeOut", "0"));
+        float fadeOut = float.Parse(action.parameters.GetValueOrDefault("fadeOut", "0"), System.Globalization.CultureInfo.InvariantCulture);
 
         if (audioManager != null)
         {
@@ -413,91 +450,106 @@ public class ActionExecutor : MonoBehaviour
 
     private IEnumerator ExecuteWait(ActionNode action)
     {
-        // @wait 1.0
-        float duration = float.Parse(action.parameters.GetValueOrDefault("param1", "1"));
-        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
         isExecutingAction = true;
-        // USE REALTIME WAIT
-        yield return new WaitForSecondsRealtime(duration);
-        isExecutingAction = false;
+        try
+        {
+            // @wait 1.0
+            float duration = float.Parse(action.parameters.GetValueOrDefault("param1", "1"), System.Globalization.CultureInfo.InvariantCulture);
+            if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
+            // USE REALTIME WAIT
+            yield return new WaitForSecondsRealtime(duration);
+        }
+        finally
+        {
+            isExecutingAction = false;
+        }
     }
 
     private IEnumerator ExecuteShake(ActionNode action)
     {
-        // @shake 0.5 10.0
-        float duration = float.Parse(action.parameters.GetValueOrDefault("param1", "0.5f"), System.Globalization.CultureInfo.InvariantCulture);
-        // Note: A larger magnitude (e.g., 10-20) works well for UI shakes.
-        float magnitude = float.Parse(action.parameters.GetValueOrDefault("param2", "15f"), System.Globalization.CultureInfo.InvariantCulture);
-        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
-
         isExecutingAction = true;
-
-        // Call the new shake coroutine on the SceneEffectsManager.
-        if (SceneEffectsManager.Instance != null && duration > 0f)
+        try
         {
-            yield return SceneEffectsManager.Instance.Shake(duration, magnitude);
-        }
-        else if (duration > 0f)
-        {
-            yield return new WaitForSeconds(duration); // Still wait for the specified duration
-        }
+            // @shake 0.5 10.0
+            float duration = float.Parse(action.parameters.GetValueOrDefault("param1", "0.5f"), System.Globalization.CultureInfo.InvariantCulture);
+            // Note: A larger magnitude (e.g., 10-20) works well for UI shakes.
+            float magnitude = float.Parse(action.parameters.GetValueOrDefault("param2", "15f"), System.Globalization.CultureInfo.InvariantCulture);
+            if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
 
-        isExecutingAction = false;
+            // Call the new shake coroutine on the SceneEffectsManager.
+            if (SceneEffectsManager.Instance != null && duration > 0f)
+            {
+                yield return SceneEffectsManager.Instance.Shake(duration, magnitude);
+            }
+            else if (duration > 0f)
+            {
+                yield return new WaitForSeconds(duration); // Still wait for the specified duration
+            }
+        }
+        finally
+        {
+            isExecutingAction = false;
+        }
     }
 
     private IEnumerator ExecuteFade(ActionNode action)
     {
-        // @fade black duration:1.0
-        // This is a placeholder - you'd implement with a UI fade panel
-        float duration = float.Parse(action.parameters.GetValueOrDefault("duration", "1.0"));
-        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
-
         isExecutingAction = true;
-        if (duration > 0f)
+        try
         {
-            yield return new WaitForSeconds(duration);
-        }
-        isExecutingAction = false;
-    }
-
-    private IEnumerator ExecuteZoom(ActionNode action)
-    {
-        // Check if it's a reset command first
-        if (action.parameters.ContainsKey("param1") && action.parameters["param1"].ToLower() == "reset")
-        {
-            isExecutingAction = true;
-
-            // Get the current duration if specified, otherwise default to 1 second for the reset
-            float duration = float.Parse(action.parameters.GetValueOrDefault("time", "1.0"), System.Globalization.CultureInfo.InvariantCulture);
+            // @fade black duration:1.0
+            // This is a placeholder - you'd implement with a UI fade panel
+            float duration = float.Parse(action.parameters.GetValueOrDefault("duration", "1.0"), System.Globalization.CultureInfo.InvariantCulture);
             if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
 
-            SceneEffectsManager.Instance.Zoom(Vector2.zero, 0, duration);
             if (duration > 0f)
             {
                 yield return new WaitForSeconds(duration);
             }
-
-            isExecutingAction = false;
-            yield break;
         }
-
-        // Parse the parameters for a normal zoom
-        float x = float.Parse(action.parameters.GetValueOrDefault("x", "0"), System.Globalization.CultureInfo.InvariantCulture);
-        float y = float.Parse(action.parameters.GetValueOrDefault("y", "0"), System.Globalization.CultureInfo.InvariantCulture);
-        float percentage = float.Parse(action.parameters.GetValueOrDefault("percentage", "0"), System.Globalization.CultureInfo.InvariantCulture);
-        float time = float.Parse(action.parameters.GetValueOrDefault("time", "1.0"), System.Globalization.CultureInfo.InvariantCulture);
-        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) time = 0f;
-
-        // Tell the DialogueManager to wait for this animation
-        isExecutingAction = true;
-
-        SceneEffectsManager.Instance.Zoom(new Vector2(x, y), percentage, time);
-        if (time > 0f)
+        finally
         {
-            yield return new WaitForSeconds(time);
+            isExecutingAction = false;
         }
+    }
 
-        isExecutingAction = false;
+    private IEnumerator ExecuteZoom(ActionNode action)
+    {
+        isExecutingAction = true;
+        try
+        {
+            // Check if it's a reset command first
+            if (action.parameters.ContainsKey("param1") && action.parameters["param1"].ToLower() == "reset")
+            {
+                // Get the current duration if specified, otherwise default to 1 second for the reset
+                float duration = float.Parse(action.parameters.GetValueOrDefault("time", "1.0"), System.Globalization.CultureInfo.InvariantCulture);
+                if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) duration = 0f;
+
+                SceneEffectsManager.Instance.Zoom(Vector2.zero, 0, duration);
+                if (duration > 0f)
+                {
+                    yield return new WaitForSeconds(duration);
+                }
+                yield break;
+            }
+
+            // Parse the parameters for a normal zoom
+            float x = float.Parse(action.parameters.GetValueOrDefault("x", "0"), System.Globalization.CultureInfo.InvariantCulture);
+            float y = float.Parse(action.parameters.GetValueOrDefault("y", "0"), System.Globalization.CultureInfo.InvariantCulture);
+            float percentage = float.Parse(action.parameters.GetValueOrDefault("percentage", "0"), System.Globalization.CultureInfo.InvariantCulture);
+            float time = float.Parse(action.parameters.GetValueOrDefault("time", "1.0"), System.Globalization.CultureInfo.InvariantCulture);
+            if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) time = 0f;
+
+            SceneEffectsManager.Instance.Zoom(new Vector2(x, y), percentage, time);
+            if (time > 0f)
+            {
+                yield return new WaitForSeconds(time);
+            }
+        }
+        finally
+        {
+            isExecutingAction = false;
+        }
     }
 
     public bool IsExecutingAction()

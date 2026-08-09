@@ -546,7 +546,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 152860993}
   m_Direction: 0
   m_Value: 1
-  m_Size: 0.99999994
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -1433,6 +1433,7 @@ GameObject:
   - component: {fileID: 130095535}
   - component: {fileID: 130095534}
   - component: {fileID: 130095533}
+  - component: {fileID: 130095537}
   m_Layer: 5
   m_Name: PreferencesPanel
   m_TagString: Untagged
@@ -1557,6 +1558,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 130095531}
   m_CullTransparentMesh: 1
+--- !u!225 &130095537
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 130095531}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &133826473
 GameObject:
   m_ObjectHideFlags: 0
@@ -2737,7 +2750,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 621643038}
   m_HandleRect: {fileID: 621643037}
   m_Direction: 0
-  m_Value: 1
+  m_Value: 0
   m_Size: 0.99999994
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -8098,6 +8111,7 @@ MonoBehaviour:
   logEntryPrefab: {fileID: 7838831075265493749, guid: 827aec0e69623de48a003c917e6996d9, type: 3}
   contentArea: {fileID: 1680920390}
   scrollRect: {fileID: 1857864544}
+  closeButton: {fileID: 0}
   animationDuration: 0.3
   startScale: 0.9
 --- !u!224 &875176938
@@ -12668,8 +12682,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 642685910}
   m_HandleRect: {fileID: 642685909}
   m_Direction: 2
-  m_Value: 0.999998
-  m_Size: 0.6302994
+  m_Value: 0.99999815
+  m_Size: 0.63029945
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:

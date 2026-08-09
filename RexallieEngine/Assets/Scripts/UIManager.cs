@@ -59,6 +59,9 @@ public class UIManager : MonoBehaviour
     [Header("Dialogue UI Opacity")]
     [SerializeField] private CanvasGroup dialogueMasterCanvasGroup; // Parent of DialoguePanel and SpeakerNamePanel
 
+    [Header("Initial Script Settings")]
+    [SerializeField] private string initialScriptName = "ui_test";
+
     // --- NEW: For Auto Mode ---
     [Header("Auto Mode Settings")]
     [Tooltip("The delay in seconds after text finishes typing before auto-advancing.")]
@@ -158,7 +161,7 @@ public class UIManager : MonoBehaviour
             preferencesButton.onClick.AddListener(() => ShowPanelWithFocus(preferencesPanel.Show));
         }
 
-        DialogueManager.Instance.LoadScriptFromFile("en", "ui_test");
+        DialogueManager.Instance.LoadScriptFromFile("en", initialScriptName);
         DialogueManager.Instance.AdvanceDialogue();
     }
 
@@ -610,10 +613,6 @@ public class UIManager : MonoBehaviour
             {
                 ToggleUIVisibility();
             }
-            else if (Keyboard.current.spaceKey.wasPressedThisFrame)
-            {
-                wasClicked = true;
-            }
         }
     }
 
@@ -776,7 +775,6 @@ public class UIManager : MonoBehaviour
 
         if (Mouse.current == null) return;
         if (IsAnyPanelActive() || isUIHidden) return;
-        if (DialogueManager.Instance != null && DialogueManager.Instance.IsWaitingForChoice()) return;
 
         float scrollY = Mouse.current.scroll.ReadValue().y;
         if (scrollY > 0.1f)

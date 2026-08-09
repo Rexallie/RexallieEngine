@@ -14,10 +14,11 @@ public class ChoiceUI : MonoBehaviour
 
     void Start()
     {
-        // Subscribe to the DialogueManager's event for presenting choices.
+        // Subscribe to the DialogueManager's events.
         if (DialogueManager.Instance != null)
         {
             DialogueManager.Instance.OnChoicePresented += ShowChoices;
+            DialogueManager.Instance.OnDialogueLineDisplayed += HideChoicesOnLine;
         }
 
         // Start with the choice container hidden.
@@ -30,7 +31,13 @@ public class ChoiceUI : MonoBehaviour
         if (DialogueManager.Instance != null)
         {
             DialogueManager.Instance.OnChoicePresented -= ShowChoices;
+            DialogueManager.Instance.OnDialogueLineDisplayed -= HideChoicesOnLine;
         }
+    }
+
+    private void HideChoicesOnLine(DialogueLine line)
+    {
+        HideChoices();
     }
 
     private void ShowChoices(List<ChoiceOption> choices)
