@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 
 [RequireComponent(typeof(CanvasGroup))]
@@ -11,6 +12,7 @@ public class HistoryPanel : MonoBehaviour
     [SerializeField] private GameObject logEntryPrefab;
     [SerializeField] private RectTransform contentArea;
     [SerializeField] private ScrollRect scrollRect;
+    [SerializeField] private Button closeButton;
 
     [Header("Animation Settings")]
     [SerializeField] private float animationDuration = 0.3f;
@@ -26,6 +28,14 @@ public class HistoryPanel : MonoBehaviour
         canvasGroup.interactable = false;
         canvasGroup.blocksRaycasts = false;
         transform.localScale = Vector3.one * startScale;
+    }
+
+    void Start()
+    {
+        if (closeButton != null)
+        {
+            closeButton.onClick.AddListener(Hide);
+        }
     }
 
     public void Show()
@@ -80,6 +90,11 @@ public class HistoryPanel : MonoBehaviour
         transform.localScale = Vector3.one;
         canvasGroup.interactable = true;
         canvasGroup.blocksRaycasts = true;
+
+        if (closeButton != null && EventSystem.current != null)
+        {
+            EventSystem.current.SetSelectedGameObject(closeButton.gameObject);
+        }
     }
 
     public void Hide()

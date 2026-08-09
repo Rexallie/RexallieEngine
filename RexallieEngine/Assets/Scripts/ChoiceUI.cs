@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 using System.Collections.Generic;
 
@@ -44,9 +45,11 @@ public class ChoiceUI : MonoBehaviour
         choiceContainer.gameObject.SetActive(true);
 
         // Create a new button for each choice.
+        GameObject firstButton = null;
         foreach (var choice in choices)
         {
             GameObject buttonObj = Instantiate(choiceButtonPrefab, choiceContainer);
+            if (firstButton == null) firstButton = buttonObj;
 
             // Set the button's text.
             buttonObj.GetComponentInChildren<TextMeshProUGUI>().text = choice.Text;
@@ -58,6 +61,12 @@ public class ChoiceUI : MonoBehaviour
                 HideChoices();
                 DialogueManager.Instance.MakeChoice(choice.TargetLabel);
             });
+        }
+
+        if (firstButton != null && EventSystem.current != null)
+        {
+            // Focus the first button for keyboard/gamepad navigation
+            EventSystem.current.SetSelectedGameObject(firstButton);
         }
     }
 

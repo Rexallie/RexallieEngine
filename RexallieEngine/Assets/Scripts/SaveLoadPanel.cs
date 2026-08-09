@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 
 [RequireComponent(typeof(CanvasGroup))]
@@ -131,6 +132,26 @@ public class SaveLoadPanel : MonoBehaviour
         transform.localScale = Vector3.one;
         canvasGroup.interactable = true;
         canvasGroup.blocksRaycasts = true;
+
+        if (EventSystem.current != null)
+        {
+            if (contentArea != null && contentArea.childCount > 0)
+            {
+                var firstSlot = contentArea.GetChild(0).GetComponentInChildren<Button>();
+                if (firstSlot != null)
+                {
+                    EventSystem.current.SetSelectedGameObject(firstSlot.gameObject);
+                }
+                else if (closeButton != null)
+                {
+                    EventSystem.current.SetSelectedGameObject(closeButton.gameObject);
+                }
+            }
+            else if (closeButton != null)
+            {
+                EventSystem.current.SetSelectedGameObject(closeButton.gameObject);
+            }
+        }
     }
 
     private IEnumerator HidePanelCoroutine()

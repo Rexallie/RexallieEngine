@@ -46,9 +46,23 @@ public class DialogueAnimator : MonoBehaviour
 
     public void SetTypeSpeed(float speed)
     {
+        if (speed >= 0.99f)
+        {
+            fastSpeed = 1500f; // Effectively instant.
+            slowSpeed = 1500f;
+            return;
+        } else
+        {
+            speed = speed * 150f;
+        }
+
         fastSpeed = speed; // For simplicity, we'll just set the fast speed for now.
                            // You could have separate sliders or logic if desired.
                            // slowSpeed could also be adjusted here, perhaps proportionally.
+
+        fastSpeed = Mathf.Max(5f, speed); // Ensure a minimum speed.
+
+        slowSpeed = Mathf.Max(5f, speed / 3f); // Example: slow speed is a third of fast speed, with a minimum.
     }
 
     // NEW: A public method to instantly finish the animation.

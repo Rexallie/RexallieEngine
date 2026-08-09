@@ -1,5 +1,6 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 using System.Collections.Generic;
 using System.Linq;
@@ -208,6 +209,22 @@ public class PreferencesPanel : MonoBehaviour
     }
 
     // --- Public Show/Hide ---
-    public void Show() { panelRoot.SetActive(true); LoadCurrentSettings(); }
+    public void Show() 
+    { 
+        panelRoot.SetActive(true); 
+        LoadCurrentSettings(); 
+
+        if (EventSystem.current != null)
+        {
+            if (displayModeDropdown != null)
+            {
+                EventSystem.current.SetSelectedGameObject(displayModeDropdown.gameObject);
+            }
+            else if (closeButton != null)
+            {
+                EventSystem.current.SetSelectedGameObject(closeButton.gameObject);
+            }
+        }
+    }
     public void Hide() { panelRoot.SetActive(false); }
 }

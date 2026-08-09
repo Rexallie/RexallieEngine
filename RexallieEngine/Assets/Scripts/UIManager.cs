@@ -1,8 +1,10 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 using TMPro;
 using System.Collections;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
 public class UIManager : MonoBehaviour
 {
@@ -63,6 +65,15 @@ public class UIManager : MonoBehaviour
     [SerializeField] private float autoAdvanceDelay = 2.0f;
     private float autoAdvanceTimer = 0f;
 
+    private bool isUIHidden = false;
+    private GameObject lastSelectedObjectBeforePanelOpen = null;
+    private bool isCtrlSkipping = false;
+    private Vector2 touchStartPos;
+    private float minSwipeDistance = 50f;
+    private bool isTrackingTouch = false;
+    private bool wasClicked = false;
+    private float scrollCooldownTimer = 0f;
+
 
     private void Awake()
     {
@@ -76,12 +87,18 @@ public class UIManager : MonoBehaviour
     {
         _playerInput.UI.Enable();
         _playerInput.UI.Submit.performed += OnAdvanceDialogue;
+        _playerInput.UI.Cancel.performed += OnCancelPerformed;
+        _playerInput.UI.QuickSave.performed += OnQuickSavePerformed;
+        _playerInput.UI.QuickLoad.performed += OnQuickLoadPerformed;
     }
 
     private void OnDisable()
     {
         _playerInput.UI.Disable();
         _playerInput.UI.Submit.performed -= OnAdvanceDialogue;
+        _playerInput.UI.Cancel.performed -= OnCancelPerformed;
+        _playerInput.UI.QuickSave.performed -= OnQuickSavePerformed;
+        _playerInput.UI.QuickLoad.performed -= OnQuickLoadPerformed;
     }
 
     void Start()
@@ -103,17 +120,17 @@ public class UIManager : MonoBehaviour
 
         if (historyButton != null && historyPanel != null)
         {
-            historyButton.onClick.AddListener(historyPanel.Show);
+            historyButton.onClick.AddListener(() => ShowPanelWithFocus(historyPanel.Show));
         }
 
         if (saveButton != null && saveLoadPanel != null)
         {
-            saveButton.onClick.AddListener(() => saveLoadPanel.Show(true));
+            saveButton.onClick.AddListener(() => ShowPanelWithFocus(() => saveLoadPanel.Show(true)));
         }
 
         if (loadButton != null && saveLoadPanel != null)
         {
-            loadButton.onClick.AddListener(() => saveLoadPanel.Show(false));
+            loadButton.onClick.AddListener(() => ShowPanelWithFocus(() => saveLoadPanel.Show(false)));
         }
 
         if (quickSaveButton != null && SaveManager.Instance != null)
@@ -138,7 +155,7 @@ public class UIManager : MonoBehaviour
 
         if (preferencesButton != null && preferencesPanel != null)
         {
-            preferencesButton.onClick.AddListener(preferencesPanel.Show);
+            preferencesButton.onClick.AddListener(() => ShowPanelWithFocus(preferencesPanel.Show));
         }
 
         DialogueManager.Instance.LoadScriptFromFile("en", "ui_test");
@@ -150,6 +167,22 @@ public class UIManager : MonoBehaviour
         if (DialogueManager.Instance.IsAutoMode)
         {
             CheckAutoAdvance();
+        }
+
+        CheckKeyboardShortcuts();
+        HandleHoldToSkip();
+        HandleTouchGestures();
+        HandleMouseScroll();
+
+        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            wasClicked = true;
+        }
+
+        if (wasClicked)
+        {
+            wasClicked = false;
+            ProcessClick();
         }
     }
 
@@ -427,5 +460,333 @@ public class UIManager : MonoBehaviour
 
         quickMenuPanelCanvasGroup.alpha = endAlpha;
         quickMenuPanelRect.localScale = Vector3.one * endScaleButtons;
+    }
+
+    private void ShowPanelWithFocus(System.Action showAction)
+    {
+        if (EventSystem.current != null)
+        {
+            lastSelectedObjectBeforePanelOpen = EventSystem.current.currentSelectedGameObject;
+        }
+        showAction.Invoke();
+    }
+
+    private void RestoreFocusToMenu()
+    {
+        if (EventSystem.current != null)
+        {
+            if (lastSelectedObjectBeforePanelOpen != null)
+            {
+                EventSystem.current.SetSelectedGameObject(lastSelectedObjectBeforePanelOpen);
+            }
+            else if (preferencesButton != null)
+            {
+                EventSystem.current.SetSelectedGameObject(preferencesButton.gameObject);
+            }
+        }
+    }
+
+    private bool IsAnyPanelActive()
+    {
+        if (historyPanel != null && historyPanel.gameObject.activeSelf && historyPanel.GetComponent<CanvasGroup>().alpha > 0.5f) return true;
+        if (saveLoadPanel != null && saveLoadPanel.gameObject.activeSelf && saveLoadPanel.GetComponent<CanvasGroup>().alpha > 0.5f) return true;
+        if (preferencesPanel != null && preferencesPanel.gameObject.activeSelf && preferencesPanel.GetComponent<CanvasGroup>().alpha > 0.5f) return true;
+        return false;
+    }
+
+    private void ToggleUIVisibility()
+    {
+        isUIHidden = !isUIHidden;
+        if (isUIHidden)
+        {
+            HideUI(0.3f);
+        }
+        else
+        {
+            ShowUI(0.3f);
+        }
+    }
+
+
+    private void ProcessClick()
+    {
+        if (isUIHidden)
+        {
+            ShowUI(0.3f);
+            isUIHidden = false;
+            return;
+        }
+
+        if (IsAnyPanelActive()) return;
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsWaitingForChoice()) return;
+
+        if (IsPointerOverInteractiveUI())
+        {
+            return;
+        }
+
+        if (DialogueManager.Instance != null)
+        {
+            if (DialogueManager.Instance.IsAutoMode)
+            {
+                DialogueManager.Instance.IsAutoMode = false;
+            }
+            if (DialogueManager.Instance.IsSkipping)
+            {
+                DialogueManager.Instance.IsSkipping = false;
+                return;
+            }
+
+            if (dialogueAnimator != null && dialogueAnimator.IsAnimating)
+            {
+                dialogueAnimator.FinishAnimation();
+            }
+            else
+            {
+                DialogueManager.Instance.AdvanceDialogue();
+            }
+        }
+    }
+
+    private void OnCancelPerformed(InputAction.CallbackContext context)
+    {
+        if (historyPanel != null && historyPanel.gameObject.activeSelf && historyPanel.GetComponent<CanvasGroup>().alpha > 0.5f)
+        {
+            historyPanel.Hide();
+            RestoreFocusToMenu();
+        }
+        else if (saveLoadPanel != null && saveLoadPanel.gameObject.activeSelf && saveLoadPanel.GetComponent<CanvasGroup>().alpha > 0.5f)
+        {
+            saveLoadPanel.Hide();
+            RestoreFocusToMenu();
+        }
+        else if (preferencesPanel != null && preferencesPanel.gameObject.activeSelf && preferencesPanel.GetComponent<CanvasGroup>().alpha > 0.5f)
+        {
+            preferencesPanel.Hide();
+            RestoreFocusToMenu();
+        }
+        else if (isUIHidden)
+        {
+            ShowUI(0.3f);
+            isUIHidden = false;
+        }
+        else
+        {
+            ToggleUIVisibility();
+        }
+    }
+
+    private void OnQuickSavePerformed(InputAction.CallbackContext context)
+    {
+        if (IsAnyPanelActive()) return;
+        OnQuickSave();
+    }
+
+    private void OnQuickLoadPerformed(InputAction.CallbackContext context)
+    {
+        if (IsAnyPanelActive()) return;
+        if (SaveManager.Instance != null)
+        {
+            SaveManager.Instance.LoadGame(SaveManager.QuickSaveSlot);
+        }
+    }
+
+    private void CheckKeyboardShortcuts()
+    {
+        if (Keyboard.current != null && !IsAnyPanelActive())
+        {
+            if (Keyboard.current.f5Key.wasPressedThisFrame)
+            {
+                OnQuickSave();
+            }
+            else if (Keyboard.current.f9Key.wasPressedThisFrame)
+            {
+                if (SaveManager.Instance != null)
+                {
+                    SaveManager.Instance.LoadGame(SaveManager.QuickSaveSlot);
+                }
+            }
+            else if (Keyboard.current.f1Key.wasPressedThisFrame)
+            {
+                ToggleUIVisibility();
+            }
+            else if (Keyboard.current.spaceKey.wasPressedThisFrame)
+            {
+                wasClicked = true;
+            }
+        }
+    }
+
+    private void HandleHoldToSkip()
+    {
+        if (DialogueManager.Instance == null || IsAnyPanelActive() || DialogueManager.Instance.IsWaitingForChoice())
+        {
+            if (isCtrlSkipping)
+            {
+                DialogueManager.Instance.IsSkipping = false;
+                isCtrlSkipping = false;
+            }
+            return;
+        }
+
+        bool isKeyboardSkip = false;
+        if (Keyboard.current != null)
+        {
+            isKeyboardSkip = Keyboard.current.leftCtrlKey.isPressed || Keyboard.current.rightCtrlKey.isPressed;
+        }
+
+        bool isGamepadSkip = false;
+        if (Gamepad.current != null)
+        {
+            isGamepadSkip = Gamepad.current.rightTrigger.isPressed || Gamepad.current.rightShoulder.isPressed;
+        }
+
+        bool shouldSkip = isKeyboardSkip || isGamepadSkip;
+
+        if (shouldSkip)
+        {
+            if (!DialogueManager.Instance.IsSkipping)
+            {
+                DialogueManager.Instance.IsSkipping = true;
+                DialogueManager.Instance.IsAutoMode = false;
+                isCtrlSkipping = true;
+                DialogueManager.Instance.AdvanceDialogue();
+            }
+        }
+        else if (isCtrlSkipping)
+        {
+            DialogueManager.Instance.IsSkipping = false;
+            isCtrlSkipping = false;
+        }
+    }
+
+    private void HandleTouchGestures()
+    {
+        if (Touchscreen.current == null) return;
+
+        var primaryTouch = Touchscreen.current.primaryTouch;
+        if (primaryTouch.press.wasPressedThisFrame)
+        {
+            touchStartPos = primaryTouch.position.ReadValue();
+            isTrackingTouch = true;
+        }
+        else if (primaryTouch.press.wasReleasedThisFrame && isTrackingTouch)
+        {
+            isTrackingTouch = false;
+            Vector2 touchEndPos = primaryTouch.position.ReadValue();
+            Vector2 swipeVector = touchEndPos - touchStartPos;
+
+            if (swipeVector.magnitude >= minSwipeDistance)
+            {
+                Vector2 direction = swipeVector.normalized;
+                
+                // Swipe Down: Hide UI
+                if (Vector2.Dot(direction, Vector2.down) > 0.7f)
+                {
+                    if (!isUIHidden && !IsAnyPanelActive())
+                    {
+                        ToggleUIVisibility();
+                    }
+                }
+                // Swipe Up: Open History Panel
+                else if (Vector2.Dot(direction, Vector2.up) > 0.7f)
+                {
+                    if (!isUIHidden && !IsAnyPanelActive() && historyPanel != null)
+                    {
+                        ShowPanelWithFocus(historyPanel.Show);
+                    }
+                }
+                // Swipe Right: Toggle Auto Mode
+                else if (Vector2.Dot(direction, Vector2.right) > 0.7f)
+                {
+                    if (!isUIHidden && !IsAnyPanelActive())
+                    {
+                        ToggleAutoMode();
+                    }
+                }
+            }
+            else
+            {
+                // Touch release without a swipe is a TAP
+                wasClicked = true;
+            }
+        }
+    }
+
+    private bool IsPointerOverInteractiveUI()
+    {
+        if (EventSystem.current == null) return false;
+
+        PointerEventData eventData = new PointerEventData(EventSystem.current);
+        Vector2 pointerPos = Vector2.zero;
+        if (Pointer.current != null)
+        {
+            pointerPos = Pointer.current.position.ReadValue();
+        }
+        else if (Mouse.current != null)
+        {
+            pointerPos = Mouse.current.position.ReadValue();
+        }
+        else
+        {
+            pointerPos = Input.mousePosition;
+        }
+        eventData.position = pointerPos;
+
+        List<RaycastResult> results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventData, results);
+
+        foreach (var result in results)
+        {
+            if (result.gameObject != null)
+            {
+                // Ignore click if it's over interactive selectables
+                if (result.gameObject.GetComponentInParent<Selectable>() != null || 
+                    result.gameObject.GetComponentInParent<TMP_InputField>() != null)
+                {
+                    return true;
+                }
+
+                // Ignore click if it's inside active menu panels
+                if ((historyPanel != null && result.gameObject.transform.IsChildOf(historyPanel.transform)) ||
+                    (saveLoadPanel != null && result.gameObject.transform.IsChildOf(saveLoadPanel.transform)) ||
+                    (preferencesPanel != null && result.gameObject.transform.IsChildOf(preferencesPanel.transform)))
+                {
+                    return true;
+                }
+
+                // Ignore click if it's inside the quick menu panel
+                if (quickMenuPanelRect != null && result.gameObject.transform.IsChildOf(quickMenuPanelRect))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private void HandleMouseScroll()
+    {
+        if (scrollCooldownTimer > 0f)
+        {
+            scrollCooldownTimer -= Time.deltaTime;
+            return;
+        }
+
+        if (Mouse.current == null) return;
+        if (IsAnyPanelActive() || isUIHidden) return;
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsWaitingForChoice()) return;
+
+        float scrollY = Mouse.current.scroll.ReadValue().y;
+        if (scrollY > 0.1f)
+        {
+            // Scroll Up: Rewind
+            if (HistoryManager.Instance != null)
+            {
+                HistoryManager.Instance.Rollback();
+                scrollCooldownTimer = 0.25f;
+            }
+        }
     }
 }
