@@ -66,7 +66,7 @@ public class DialogueScriptParser
         };
         nodeCounter = 0;
 
-        string[] lines = scriptText.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
+        string[] lines = scriptText.Split('\n');
 
         for (int i = 0; i < lines.Length; i++)
         {
@@ -372,18 +372,12 @@ public class DialogueManager : MonoBehaviour
         }
 
         DialogueNode node = currentScript.nodes[currentNodeIndex];
-
-        /*
-        // Only record history if we are NOT in the middle of restoring a state.
-        if (node is DialogueLine && !isRestoringState)
-        {
-            HistoryManager.Instance.RecordState();
-        }*/
-
+        Debug.Log($"[DialogueManager] ProcessCurrentNode: Index {currentNodeIndex}, Node Type: {node.GetType().Name}");
         currentNodeIndex++;
 
         if (node is DialogueLine dialogueLine)
         {
+            Debug.Log($"[DialogueManager] Displaying Dialogue Line: {dialogueLine.speakerID} - '{dialogueLine.text}'");
             OnDialogueLineDisplayed?.Invoke(dialogueLine);
 
             // NEW: Check if the next node is a choice.
@@ -398,12 +392,14 @@ public class DialogueManager : MonoBehaviour
         }
         else if (node is ChoiceNode choiceNode)
         {
+            Debug.Log($"[DialogueManager] Presenting Choice Node Options Count: {choiceNode.options.Count}");
             isWaitingOnChoice = true;
             OnChoicePresented?.Invoke(choiceNode.options);
             if (isRestoringState) isRestoringState = false;
         }
         else if (node is ActionNode actionNode)
         {
+            Debug.Log($"[DialogueManager] Executing Action Node: {actionNode.action}");
             OnActionExecuted?.Invoke(actionNode);
 
             string actionType = actionNode.action.ToLower();

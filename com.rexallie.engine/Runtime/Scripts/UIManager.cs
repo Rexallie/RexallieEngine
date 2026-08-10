@@ -229,6 +229,8 @@ public class UIManager : MonoBehaviour
         string nameKey = $"character_{line.speakerID.ToLower()}_name";
         string displayName = LocalizationManager.Instance.GetLocalizedValue(nameKey);
 
+        Debug.Log($"[UIManager] DisplayDialogue: Speaker={displayName} (ID={line.speakerID}), Text='{line.text}'");
+
         speakerNameText.text = displayName;
 
         AudioClip voiceBlip = null;
@@ -246,11 +248,20 @@ public class UIManager : MonoBehaviour
             // --- THIS IS THE KEY CHANGE ---
             // Check if we are skipping and pass that to the ShowText method.
             bool instant = DialogueManager.Instance.IsSkipping;
+            Debug.Log($"[UIManager] Sending text to dialogueAnimator (instant={instant})");
             dialogueAnimator.ShowText(line.text, voiceBlip, instant);
         }
         else
         {
-            dialogueText.text = line.text;
+            Debug.LogWarning("[UIManager] dialogueAnimator is null! Writing text directly to dialogueText field.");
+            if (dialogueText != null)
+            {
+                dialogueText.text = line.text;
+            }
+            else
+            {
+                Debug.LogError("[UIManager] dialogueText is ALSO null! Cannot display dialogue!");
+            }
         }
 
         DialogueLogManager.Instance.AddLog(displayName, line.text);
