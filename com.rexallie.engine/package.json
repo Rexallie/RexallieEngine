@@ -10,5 +10,12 @@
   "dependencies": {
     "com.unity.inputsystem": "1.14.2",
     "com.unity.textmeshpro": "3.0.9"
-  }
+  },
+  "samples": [
+    {
+      "displayName": "Demo Showcase",
+      "description": "A pre-configured scene showcasing characters, branch choices, background changes, audios, visual effects, and rollback support.",
+      "path": "Samples~/DemoShowcase"
+    }
+  ]
 }

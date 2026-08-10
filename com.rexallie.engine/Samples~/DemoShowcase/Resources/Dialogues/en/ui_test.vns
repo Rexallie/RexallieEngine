@@ -1,0 +1,46 @@
+# Scene starts with no UI
+@clearDialogue
+
+@hideUI time:0
+
+@setBackground campus instant
+
+# A character appears, then the UI fades in for dialogue.
+@showCharacter furry left base base fadeIn:1.0 slideFrom:farLeft
+
+@showUI time:0.2
+
+furry [base]:
+girl eating noodle
+
+furry [base]:
+love noodle
+
+furry [base]:
+like noodle aslrj alksjrlaksrj lksjr lkasjr lkasjrlkajs rlkasjr lkajsrlkjalskr jal
+sarlkssajrklajs lkrajslk rjalskr jalksrj laksjr lkjsakj hrkajshr kajshrkj ahskrj has
+bxcjolbiuxcogiu osiedutoiw ueotisadut osiedutoiwxctxuc
+xctuicxptoispodti
+posditposidtposditposidtposidtposdt
+
+furry [base]:
+fgdsaagsgdkljsadsdfghsfghjsfgujdfgufdguf sdfsfd sdf
+
+@showCharacter nikita right base base fadeIn:1.0 slideFrom:farRight
+
+# Hide the UI for a cinematic moment.
+@hideUI time:0.2
+
+@zoom x:-300 y:0 percentage:80 time:0.8
+
+@clearDialogue
+
+@shake 0.2 10
+
+@showUI time:0.3
+
+nikita [base]:
+girl you eating my <size=150%>NOODLES<size=100%>!
+
+furry [base]:
+anna ou

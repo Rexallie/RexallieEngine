@@ -1,0 +1,57 @@
+@set alice_points = 0
+@set met_bob = false
+
+start:
+
+    @showCharacter Alice left casual base
+
+    Alice [base]:
+    任何人不得使为奴
+
+    @choice
+        "Talk to Bob." -> talk_to_bob
+        "Talk to Charlie." -> talk_to_charlie
+    @endchoice
+
+talk_to_bob:
+
+    @set met_bob = true
+    @set alice_points += 5
+
+    Alice [base]:
+    Hi bob!
+
+    @jump check_ending
+
+talk_to_charlie:
+
+    @set alice_points -= 2
+
+    Alice [base]:
+    Hey Charlie.
+
+    @jump check_ending
+
+check_ending:
+
+    @if alice_points > 3 jump good_outcome
+    @if alice_points <= 3 jump bad_outcome
+
+good_outcome:
+
+    Alice [base]:
+    I feel like I made a good connection today.
+
+    @jump the_end
+    
+bad_outcome:
+
+    Alice [base]:
+    Well, that was awkward.
+
+    @jump the_end
+
+the_end:
+
+    Alice [base]:
+    The end.

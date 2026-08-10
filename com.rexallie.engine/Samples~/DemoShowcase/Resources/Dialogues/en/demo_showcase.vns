@@ -1,0 +1,106 @@
+// Example showcase script demonstrating all capabilities of the Rexallie visual novel engine
+
+@set affinity_nikita = 0
+@set met_nikita = false
+
+start:
+    // Setup initial background and play chill music
+    @setBackground campus instant
+    @playMusic chill fadeIn:1.5
+
+    // Show Alice sliding in from the left
+    @showCharacter Alice left aya_base base fadeIn:1.0 slideFrom:left
+
+    Alice <aya_base> [base]:
+    Welcome to the Rexallie VN Engine showcase!
+    We've just faded in the campus background, started playing the chill soundtrack, and had me slide in from the left.
+
+    Alice <aya_base> [happy]:
+    Next, let's bring in another character. Meet Nikita!
+
+    // Show Nikita sliding from the right
+    @showCharacter Nikita right base base fadeIn:1.0 slideFrom:right
+    @set met_nikita = true
+
+    Nikita <base> [base]:
+    Hello there. I hear we're showing off screen effects.
+
+    Alice <aya_base> [base]:
+    We sure are! Let's start with a camera shake to show impact.
+
+    // Play cat sound and shake screen
+    @playSFX cat
+    @shake 0.8 15.0
+
+    Nikita <base> [happy]:
+    Whoa! That was a loud cat noise and a strong screen shake!
+
+    Alice <aya_base> [happy]:
+    And now, let's focus on Nikita using the camera zoom action.
+
+    // Zoom in on Nikita
+    @zoom x:300 y:0 percentage:40 time:1.5
+
+    Nikita <casual> [happy]:
+    My portrait just changed to casual, and the camera zoomed in directly on me!
+    During zoom and camera movements, dialogue skipping will automatically skip these animations.
+
+    Alice <aya_base> [base]:
+    Let's reset the zoom and make a choice to show conditional branching.
+
+    @zoom reset time:1.0
+
+    Alice <aya_base> [base]:
+    Nikita, what is your favorite topic in game dev?
+
+    @choice
+        "Ask about programming." -> path_programming
+        "Ask about visual arts." -> path_art
+    @endchoice
+
+path_programming:
+    @set affinity_nikita += 5
+    Nikita <base> [happy]:
+    Ah, coding! That's my absolute favorite. 
+    It's the skeleton that holds the visual novel engine together.
+    @jump evaluate_outcome
+
+path_art:
+    @set affinity_nikita -= 2
+    Nikita <base> [base]:
+    Art is nice, but I'm more of a logic person myself.
+    @jump evaluate_outcome
+
+evaluate_outcome:
+    // Check points to determine response
+    @if affinity_nikita > 0 jump high_affinity
+    @if affinity_nikita <= 0 jump low_affinity
+
+high_affinity:
+    @playMusic pump fadeIn:1.0
+    Nikita <casual> [happy]:
+    I really enjoyed talking to you. Let's make a great visual novel together!
+    @unlock_cg gallery_image_showcase
+    @jump ending
+
+low_affinity:
+    Nikita <base> [base]:
+    Well, thanks for chatting anyway. I have to go back to debugging now.
+    @jump ending
+
+ending:
+    @hideCharacter Nikita fadeOut:0.5 slideTo:right
+
+    Alice <aya_base> [happy]:
+    That concludes our engine capabilities showcase!
+    We've demonstrated:
+    - Text styling tags like <b>bold</b>, <i>italics</i>, and <size=130%>size changes</size>.
+    - Transitions and effects (shake, zoom, fade).
+    - Conditionals, variables, branching choices, and persistent CG unlocks.
+
+    Alice <aya_base> [base]:
+    Check out the documentation in the workspace root to see how you can write your own scripts.
+    Bye-bye!
+
+    @stopMusic fadeOut:2.0
+    @wait 2.0
