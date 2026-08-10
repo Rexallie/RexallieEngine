@@ -11042,7 +11042,7 @@ GameObject:
   - component: {fileID: 1159438259}
   - component: {fileID: 1159438258}
   m_Layer: 5
-  m_Name: Canvas
+  m_Name: Canvas/UIManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -11087,6 +11087,7 @@ MonoBehaviour:
   preferencesPanel: {fileID: 130095534}
   preferencesButton: {fileID: 1823079428}
   dialogueMasterCanvasGroup: {fileID: 1856805704}
+  initialScriptName: demo_showcase
   autoAdvanceDelay: 2
 --- !u!114 &1159438259
 MonoBehaviour:
@@ -15960,7 +15961,7 @@ MonoBehaviour:
     m_Top: 0
     m_Bottom: 0
   m_ChildAlignment: 1
-  m_Spacing: -65
+  m_Spacing: -40
   m_ChildForceExpandWidth: 1
   m_ChildForceExpandHeight: 0
   m_ChildControlWidth: 1

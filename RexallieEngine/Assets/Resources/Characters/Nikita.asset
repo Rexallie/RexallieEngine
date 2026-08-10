@@ -19,10 +19,12 @@ MonoBehaviour:
   - portraitName: base
     sprite: {fileID: 21300000, guid: e11cfa8fd94ef5145b1c3e5b24d415de, type: 3}
   - portraitName: casual
-    sprite: {fileID: 21300000, guid: 027354c87dae34d4c972b2a531b62506, type: 3}
+    sprite: {fileID: 21300000, guid: 7448178c716da2446a5f6a3e30b74f1d, type: 3}
   expressions:
   - expressionName: base
     sprite: {fileID: 21300000, guid: e11cfa8fd94ef5145b1c3e5b24d415de, type: 3}
   - expressionName: happy
-    sprite: {fileID: 21300000, guid: a104758ad0ab8674d940c084c5a95f87, type: 3}
+    sprite: {fileID: 21300000, guid: f1a45d427e58d944ebcd54cd96aaebaf, type: 3}
   voiceBlip: {fileID: 0}
+  defaultOutfit: {fileID: 21300000, guid: 7448178c716da2446a5f6a3e30b74f1d, type: 3}
+  defaultExpression: {fileID: 21300000, guid: f1a45d427e58d944ebcd54cd96aaebaf, type: 3}

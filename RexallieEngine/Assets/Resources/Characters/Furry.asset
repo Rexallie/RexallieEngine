@@ -26,3 +26,5 @@ MonoBehaviour:
   - expressionName: happy
     sprite: {fileID: 21300000, guid: a104758ad0ab8674d940c084c5a95f87, type: 3}
   voiceBlip: {fileID: 0}
+  defaultOutfit: {fileID: 21300000, guid: 7448178c716da2446a5f6a3e30b74f1d, type: 3}
+  defaultExpression: {fileID: 21300000, guid: f1a45d427e58d944ebcd54cd96aaebaf, type: 3}
