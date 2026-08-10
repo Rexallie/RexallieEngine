@@ -1,0 +1,14 @@
+{
+  "name": "com.rexallie.engine",
+  "version": "1.0.0",
+  "displayName": "Rexallie Dialogue Engine",
+  "description": "A lightweight, highly extensible Visual Novel and branching dialogue engine for Unity.",
+  "unity": "2021.3",
+  "author": {
+    "name": "Rexallie"
+  },
+  "dependencies": {
+    "com.unity.inputsystem": "1.14.2",
+    "com.unity.textmeshpro": "3.0.9"
+  }
+}
