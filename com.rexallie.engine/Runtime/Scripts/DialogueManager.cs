@@ -299,23 +299,35 @@ public class DialogueManager : MonoBehaviour
 
     public void LoadScriptFromFile(string language, string fileName)
     {
+        if (string.IsNullOrEmpty(fileName))
+        {
+            Debug.LogError("LoadScriptFromFile called with null or empty script name.");
+            return;
+        }
         currentScriptName = fileName;
         fileName = System.IO.Path.GetFileNameWithoutExtension(fileName);
-        TextAsset scriptAsset = Resources.Load<TextAsset>($"Dialogues/{language}/{fileName}");
+        string loadPath = $"Dialogues/{language}/{fileName}";
+        TextAsset scriptAsset = Resources.Load<TextAsset>(loadPath);
         if (scriptAsset != null)
         {
             currentScript = parser.ParseScript(scriptAsset.text);
             currentNodeIndex = 0;
             isWaitingOnChoice = false;
+            Debug.Log($"Successfully loaded dialogue script: '{loadPath}' with {currentScript.nodes.Count} nodes.");
         }
         else
         {
-            Debug.LogError($"Could not find script: Resources/Dialogues/{language}/{fileName}");
+            Debug.LogError($"Could not find script asset at: Resources/Dialogues/{language}/{fileName}. Please ensure you have imported the Demo Showcase samples or placed your script in the Resources folder.");
         }
     }
 
     public void AdvanceDialogue()
     {
+        if (currentScript == null)
+        {
+            Debug.LogWarning("AdvanceDialogue called but no script is loaded. Please load a script first.");
+            return;
+        }
         if (isProcessingNode || isWaitingOnChoice) return;
 
         if (IsSkipping)
