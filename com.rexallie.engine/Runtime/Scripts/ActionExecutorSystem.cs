@@ -72,6 +72,20 @@ public class ActionExecutor : MonoBehaviour
             case "unlock_cg":
                 ExecuteUnlockCG(action);
                 break;
+            case "fadeout":
+                StartCoroutine(ExecuteFadeOut(action));
+                break;
+            case "fadein":
+                StartCoroutine(ExecuteFadeIn(action));
+                break;
+            case "trigger":
+            case "event":
+                ExecuteVNSTrigger(action);
+                break;
+            case "loadscript":
+            case "load_script":
+                ExecuteLoadScript(action);
+                break;
 
             // Variable actions
             case "set":
@@ -549,6 +563,141 @@ public class ActionExecutor : MonoBehaviour
         finally
         {
             isExecutingAction = false;
+        }
+    }
+
+    private IEnumerator ExecuteFadeOut(ActionNode action)
+    {
+        isExecutingAction = true;
+        try
+        {
+            float duration = 1.0f;
+            string durationStr = action.parameters.GetValueOrDefault("param1", "");
+            if (!string.IsNullOrEmpty(durationStr))
+            {
+                float.TryParse(durationStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out duration);
+            }
+
+            Color fadeColor = Color.black;
+            string colorStr = action.parameters.GetValueOrDefault("param2", "").ToLower();
+            if (colorStr == "white")
+            {
+                fadeColor = Color.white;
+            }
+            else if (colorStr.StartsWith("#") && ColorUtility.TryParseHtmlString(colorStr, out Color customColor))
+            {
+                fadeColor = customColor;
+            }
+
+            bool finished = false;
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.FadeOutScreen(duration, fadeColor, () => finished = true);
+            }
+            else
+            {
+                finished = true;
+            }
+
+            while (!finished)
+            {
+                yield return null;
+            }
+        }
+        finally
+        {
+            isExecutingAction = false;
+        }
+
+        if (DialogueManager.Instance != null)
+        {
+            DialogueManager.Instance.AdvanceDialogue();
+        }
+    }
+
+    private IEnumerator ExecuteFadeIn(ActionNode action)
+    {
+        isExecutingAction = true;
+        try
+        {
+            float duration = 1.0f;
+            string durationStr = action.parameters.GetValueOrDefault("param1", "");
+            if (!string.IsNullOrEmpty(durationStr))
+            {
+                float.TryParse(durationStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out duration);
+            }
+
+            bool finished = false;
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.FadeInScreen(duration, () => finished = true);
+            }
+            else
+            {
+                finished = true;
+            }
+
+            while (!finished)
+            {
+                yield return null;
+            }
+        }
+        finally
+        {
+            isExecutingAction = false;
+        }
+
+        if (DialogueManager.Instance != null)
+        {
+            DialogueManager.Instance.AdvanceDialogue();
+        }
+     }
+
+    private void ExecuteVNSTrigger(ActionNode action)
+    {
+        string triggerName = action.parameters.GetValueOrDefault("param1", "");
+        
+        List<string> args = new List<string>();
+        int index = 2;
+        while (true)
+        {
+            string key = "param" + index;
+            if (action.parameters.TryGetValue(key, out string argValue))
+            {
+                args.Add(argValue);
+                index++;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        if (DialogueManager.Instance != null)
+        {
+            DialogueManager.Instance.TriggerVNSEvent(triggerName, args.ToArray());
+            DialogueManager.Instance.AdvanceDialogue();
+        }
+    }
+
+    private void ExecuteLoadScript(ActionNode action)
+    {
+        string nextScriptName = action.parameters.GetValueOrDefault("param1", "");
+        if (string.IsNullOrEmpty(nextScriptName))
+        {
+            Debug.LogError("[ActionExecutor] loadScript command has no target script file name.");
+            return;
+        }
+
+        string currentLanguage = PlayerPrefs.GetString("language", "en");
+        
+        Debug.Log($"[ActionExecutor] Transitioning dialogue script to: '{nextScriptName}'");
+
+        if (DialogueManager.Instance != null)
+        {
+            DialogueManager.Instance.LoadScriptFromFile(currentLanguage, nextScriptName);
+            StopAllActions();
+            DialogueManager.Instance.AdvanceDialogue();
         }
     }
 

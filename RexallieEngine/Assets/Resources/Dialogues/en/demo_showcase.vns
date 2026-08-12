@@ -13,10 +13,16 @@ start:
 
     Alice <aya_base> [base]:
     Welcome to the Rexallie VN Engine showcase!
-    We've just faded in the campus background, started playing the chill soundtrack, and had me slide in from the left.
+    We've just faded in the campus background, {p=0.5}started playing the chill soundtrack, and had me slide in from the left.
+
+    @fadeOut 1.5 black
+
+    @wait 1.0
+
+    @fadeIn 1.0
 
     Alice <aya_base> [happy]:
-    Next, let's bring in another character. Meet Nikita!
+    Next, let's bring in another character. {w}Meet Nikita!
 
     // Show Nikita sliding from the right
     @showCharacter Nikita right base base fadeIn:1.0 slideFrom:right

@@ -253,6 +253,13 @@ public class DialogueManager : MonoBehaviour
     public event Action<ActionNode> OnActionExecuted;
     public event Action OnDialogueEnded;
     public event Action<List<ChoiceOption>> OnChoicePresented;
+    public event Action<string, string[]> OnVNSTrigger;
+
+    public void TriggerVNSEvent(string eventName, string[] parameters)
+    {
+        Debug.Log($"[DialogueManager] TriggerVNSEvent: {eventName} with {parameters.Length} arguments.");
+        OnVNSTrigger?.Invoke(eventName, parameters);
+    }
 
     // --- NEW: This flag prevents recording history during a restore operation ---
     private bool isRestoringState = false;

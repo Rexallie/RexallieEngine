@@ -41,6 +41,16 @@ The dialogue display is powered by TextMeshPro, meaning you can use HTML-style r
 - **Underline & Strikethrough**: `Check this <u>underlined</u> or <s>struck-through</s> text.`
 - **Subscript & Superscript**: `H<sub>2</sub>O or X<sup>2</sup>`
 
+### Dialogue Text Variable Interpolation
+You can display the value of any story variable directly inside your dialogue by enclosing the variable name in curly braces `{}`:
+- **Variable Display**: `Your affinity with Nikita is {affinity_nikita}.`
+
+### Dialogue Typewriter Inline Commands
+You can control the typewriter speed and pausing in the middle of sentences using inline tags:
+- **`{w}`**: Wait for player click. The typewriter stops typing and waits for the player to press confirm/click before continuing the sentence.
+- **`{p=duration}`**: Pause typing for a specific duration in seconds (e.g., `{p=0.5}` pauses for 0.5s before continuing automatically).
+- **Example**: `Hello!{w} Welcome to the school.{p=0.5} Let's head inside.`
+
 ---
 
 ## 3. Script Actions & Commands
@@ -70,6 +80,10 @@ All engine commands start with the `@` symbol, followed by parameters.
       "Talk to Alice." -> talk_to_alice
       "Walk away." -> leave_scene
   @endchoice
+  ```
+- **`@loadScript filename`**: Load and transition to another visual novel script file instantly (useful for multi-chapter games).
+  ```vnscript
+  @loadScript chapter_2
   ```
 
 ### B. Character Actions
@@ -149,6 +163,22 @@ All engine commands start with the `@` symbol, followed by parameters.
 - **`@clearDialogue`**: Empty the speaker name and text boxes.
   ```vnscript
   @clearDialogue
+  ```
+- **`@fadeOut [duration] [color]`**: Fade the entire screen (including UI, dialogue, characters, backgrounds) to a solid color.
+  - `duration` (Optional): duration in seconds (default: `1.0`)
+  - `color` (Optional): `black`, `white`, or hex color code (default: `black`)
+  ```vnscript
+  @fadeOut 1.5 black
+  ```
+- **`@fadeIn [duration]`**: Fade the entire screen back in from the current overlay color.
+  - `duration` (Optional): duration in seconds (default: `1.0`)
+  ```vnscript
+  @fadeIn 1.0
+  ```
+- **`@trigger eventName [parameter1] [parameter2] ...`**: Broadcast a custom event notification to external game scripts outside the visual novel dialogue scope (e.g., spawning game items, triggering combat scenes, or starting animations).
+  ```vnscript
+  @trigger spawn cube
+  @trigger start_combat elite_guard 50
   ```
 
 ---

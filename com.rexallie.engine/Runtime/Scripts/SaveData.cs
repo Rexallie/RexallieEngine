@@ -46,6 +46,8 @@ public class UISaveData
     public bool dialoguePanelVisible;
     public bool speakerNamePanelVisible;
     public bool quickMenuPanelVisible;
+    public float screenFadeAlpha;
+    public Color screenFadeColor;
 }
 
 // HistoryState now includes the new metadata.

@@ -152,4 +152,18 @@ public class VariableManager : MonoBehaviour
             }
         }
     }
+
+    public bool HasVariable(string name)
+    {
+        return variables.ContainsKey(name);
+    }
+
+    public object GetVariableObject(string name)
+    {
+        if (variables.TryGetValue(name, out object val))
+        {
+            return val;
+        }
+        return null;
+    }
 }

@@ -29,6 +29,8 @@ public class SaveLoadPanel : MonoBehaviour
 
     // --- NEW: To store which slot we are saving to ---
     private int currentSlotToSave;
+    private ScrollRect scrollRect;
+    private GameObject lastSelectedSlotButton = null;
 
     void Awake()
     {
@@ -37,6 +39,7 @@ public class SaveLoadPanel : MonoBehaviour
         canvasGroup.interactable = false;
         canvasGroup.blocksRaycasts = false;
         transform.localScale = Vector3.one * startScale;
+        scrollRect = GetComponentInChildren<ScrollRect>();
     }
 
     void Start()
@@ -89,13 +92,27 @@ public class SaveLoadPanel : MonoBehaviour
         currentSlotToSave = slotNumber;
         nameInputField.text = currentName;
         renamePanel.SetActive(true);
-        // We can add a fade/scale animation to this panel as well,
-        // but for now, we'll just show it.
+
+        if (EventSystem.current != null)
+        {
+            lastSelectedSlotButton = EventSystem.current.currentSelectedGameObject;
+            EventSystem.current.SetSelectedGameObject(nameInputField.gameObject);
+        }
     }
 
     private void HideRenamePrompt()
     {
         renamePanel.SetActive(false);
+        RestoreSlotButtonFocus();
+    }
+
+    private void RestoreSlotButtonFocus()
+    {
+        if (EventSystem.current != null && lastSelectedSlotButton != null)
+        {
+            EventSystem.current.SetSelectedGameObject(lastSelectedSlotButton);
+            lastSelectedSlotButton = null;
+        }
     }
 
     private void OnConfirmRename()
@@ -106,8 +123,25 @@ public class SaveLoadPanel : MonoBehaviour
             newName = "Save " + (currentSlotToSave + 1);
         }
 
-        SaveManager.Instance.SaveGame(currentSlotToSave, newName, Refresh);
+        SaveManager.Instance.SaveGame(currentSlotToSave, newName, () =>
+        {
+            Refresh();
+            StartCoroutine(RestoreFocusAfterRefresh(currentSlotToSave));
+        });
         HideRenamePrompt();
+    }
+
+    private IEnumerator RestoreFocusAfterRefresh(int slotIndex)
+    {
+        yield return new WaitForEndOfFrame();
+        if (EventSystem.current != null && contentArea != null && contentArea.childCount > slotIndex)
+        {
+            var slotBtn = contentArea.GetChild(slotIndex).GetComponentInChildren<Button>();
+            if (slotBtn != null)
+            {
+                EventSystem.current.SetSelectedGameObject(slotBtn.gameObject);
+            }
+        }
     }
 
     private IEnumerator ShowPanelCoroutine(bool isSaving)
@@ -174,5 +208,52 @@ public class SaveLoadPanel : MonoBehaviour
 
         canvasGroup.alpha = 0f;
         transform.localScale = Vector3.one * startScale;
+    }
+
+    void Update()
+    {
+        if (canvasGroup != null && canvasGroup.interactable)
+        {
+            UpdateScrollPositionToSelected(scrollRect, contentArea);
+        }
+    }
+
+    private void UpdateScrollPositionToSelected(ScrollRect scrollRect, RectTransform contentArea)
+    {
+        if (scrollRect == null || contentArea == null || EventSystem.current == null) return;
+
+        GameObject selected = EventSystem.current.currentSelectedGameObject;
+        if (selected == null || !selected.transform.IsChildOf(contentArea)) return;
+
+        RectTransform selectedRect = selected.GetComponent<RectTransform>();
+        if (selectedRect == null) return;
+
+        Vector3 selectedPos = contentArea.InverseTransformPoint(selectedRect.position);
+        float selectedY = selectedPos.y;
+        float selectedHeight = selectedRect.rect.height;
+
+        RectTransform viewportRect = scrollRect.viewport != null ? scrollRect.viewport : scrollRect.GetComponent<RectTransform>();
+        float viewportHeight = viewportRect.rect.height;
+
+        float contentHeight = contentArea.rect.height;
+        if (contentHeight <= viewportHeight) return;
+
+        float currentScrollY = contentArea.anchoredPosition.y;
+        
+        float topBoundary = -selectedY - (selectedHeight * 0.5f);
+        float bottomBoundary = -selectedY + (selectedHeight * 0.5f);
+
+        if (topBoundary < currentScrollY)
+        {
+            Vector2 pos = contentArea.anchoredPosition;
+            pos.y = topBoundary;
+            contentArea.anchoredPosition = pos;
+        }
+        else if (bottomBoundary > currentScrollY + viewportHeight)
+        {
+            Vector2 pos = contentArea.anchoredPosition;
+            pos.y = bottomBoundary - viewportHeight;
+            contentArea.anchoredPosition = pos;
+        }
     }
 }

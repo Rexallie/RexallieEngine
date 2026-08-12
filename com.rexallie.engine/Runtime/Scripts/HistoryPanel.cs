@@ -135,4 +135,51 @@ public class HistoryPanel : MonoBehaviour
         canvasGroup.alpha = 0f;
         transform.localScale = Vector3.one * startScale;
     }
+
+    void Update()
+    {
+        if (canvasGroup != null && canvasGroup.interactable)
+        {
+            UpdateScrollPositionToSelected(scrollRect, contentArea);
+        }
+    }
+
+    private void UpdateScrollPositionToSelected(ScrollRect scrollRect, RectTransform contentArea)
+    {
+        if (scrollRect == null || contentArea == null || EventSystem.current == null) return;
+
+        GameObject selected = EventSystem.current.currentSelectedGameObject;
+        if (selected == null || !selected.transform.IsChildOf(contentArea)) return;
+
+        RectTransform selectedRect = selected.GetComponent<RectTransform>();
+        if (selectedRect == null) return;
+
+        Vector3 selectedPos = contentArea.InverseTransformPoint(selectedRect.position);
+        float selectedY = selectedPos.y;
+        float selectedHeight = selectedRect.rect.height;
+
+        RectTransform viewportRect = scrollRect.viewport != null ? scrollRect.viewport : scrollRect.GetComponent<RectTransform>();
+        float viewportHeight = viewportRect.rect.height;
+
+        float contentHeight = contentArea.rect.height;
+        if (contentHeight <= viewportHeight) return;
+
+        float currentScrollY = contentArea.anchoredPosition.y;
+        
+        float topBoundary = -selectedY - (selectedHeight * 0.5f);
+        float bottomBoundary = -selectedY + (selectedHeight * 0.5f);
+
+        if (topBoundary < currentScrollY)
+        {
+            Vector2 pos = contentArea.anchoredPosition;
+            pos.y = topBoundary;
+            contentArea.anchoredPosition = pos;
+        }
+        else if (bottomBoundary > currentScrollY + viewportHeight)
+        {
+            Vector2 pos = contentArea.anchoredPosition;
+            pos.y = bottomBoundary - viewportHeight;
+            contentArea.anchoredPosition = pos;
+        }
+    }
 }

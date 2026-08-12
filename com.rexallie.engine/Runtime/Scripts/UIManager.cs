@@ -51,6 +51,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button quickLoadButton; // <-- ADDED
     [SerializeField] private Button skipButton; // <-- ADD THIS
     [SerializeField] private Button autoButton;
+    [SerializeField] private Button mainMenuButton;
 
     [Header("Preferences")]
     [SerializeField] private PreferencesPanel preferencesPanel;
@@ -76,6 +77,7 @@ public class UIManager : MonoBehaviour
     private bool isTrackingTouch = false;
     private bool wasClicked = false;
     private float scrollCooldownTimer = 0f;
+    private Vector2 lastMousePosition = Vector2.zero;
 
 
     private void Awake()
@@ -106,6 +108,26 @@ public class UIManager : MonoBehaviour
 
     void Start()
     {
+        Button[] allButtons = new Button[] {
+            backButton,
+            historyButton,
+            skipButton,
+            autoButton,
+            saveButton,
+            loadButton,
+            quickSaveButton,
+            quickLoadButton,
+            preferencesButton,
+            mainMenuButton
+        };
+        foreach (Button btn in allButtons)
+        {
+            if (btn != null)
+            {
+                btn.navigation = new Navigation { mode = Navigation.Mode.None };
+            }
+        }
+
         if (DialogueManager.Instance != null)
         {
             DialogueManager.Instance.OnDialogueLineDisplayed += DisplayDialogue;
@@ -172,7 +194,23 @@ public class UIManager : MonoBehaviour
             CheckAutoAdvance();
         }
 
+        if (Mouse.current != null)
+        {
+            Vector2 currentMousePos = Mouse.current.position.ReadValue();
+            if (Vector2.Distance(currentMousePos, lastMousePosition) > 2f)
+            {
+                lastMousePosition = currentMousePos;
+                if (EventSystem.current != null && IsAnyMenuButtonSelected())
+                {
+                    EventSystem.current.SetSelectedGameObject(null);
+                }
+            }
+        }
+
         CheckKeyboardShortcuts();
+        CheckMouseShortcuts();
+        HandleMenuNavigationInputs();
+        UpdateMenuButtonVisuals();
         HandleHoldToSkip();
         HandleTouchGestures();
         HandleMouseScroll();
@@ -203,6 +241,20 @@ public class UIManager : MonoBehaviour
 
     private void OnAdvanceDialogue(InputAction.CallbackContext context)
     {
+        if (IsAnyPanelActive()) return;
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsWaitingForChoice()) return;
+
+        if (IsAnyMenuButtonSelected())
+        {
+            return;
+        }
+
+        if (dialogueAnimator != null && dialogueAnimator.IsWaitingForInlineClick)
+        {
+            dialogueAnimator.IsWaitingForInlineClick = false;
+            return;
+        }
+
         if (DialogueManager.Instance.IsAutoMode)
         {
             DialogueManager.Instance.IsAutoMode = false;
@@ -229,7 +281,10 @@ public class UIManager : MonoBehaviour
         string nameKey = $"character_{line.speakerID.ToLower()}_name";
         string displayName = LocalizationManager.Instance.GetLocalizedValue(nameKey);
 
-        Debug.Log($"[UIManager] DisplayDialogue: Speaker={displayName} (ID={line.speakerID}), Text='{line.text}'");
+        // Interpolate variables before display
+        string interpolatedText = InterpolateVariables(line.text);
+
+        Debug.Log($"[UIManager] DisplayDialogue: Speaker={displayName} (ID={line.speakerID}), Text='{interpolatedText}'");
 
         speakerNameText.text = displayName;
 
@@ -249,14 +304,14 @@ public class UIManager : MonoBehaviour
             // Check if we are skipping and pass that to the ShowText method.
             bool instant = DialogueManager.Instance.IsSkipping;
             Debug.Log($"[UIManager] Sending text to dialogueAnimator (instant={instant})");
-            dialogueAnimator.ShowText(line.text, voiceBlip, instant);
+            dialogueAnimator.ShowText(interpolatedText, voiceBlip, instant);
         }
         else
         {
             Debug.LogWarning("[UIManager] dialogueAnimator is null! Writing text directly to dialogueText field.");
             if (dialogueText != null)
             {
-                dialogueText.text = line.text;
+                dialogueText.text = interpolatedText;
             }
             else
             {
@@ -264,7 +319,7 @@ public class UIManager : MonoBehaviour
             }
         }
 
-        DialogueLogManager.Instance.AddLog(displayName, line.text);
+        DialogueLogManager.Instance.AddLog(displayName, interpolatedText);
     }
 
     // --- NEW: Method to toggle Auto mode ---
@@ -405,19 +460,33 @@ public class UIManager : MonoBehaviour
 
     public UISaveData GetState()
     {
+        InitializeFadeOverlay();
         return new UISaveData
         {
             dialoguePanelVisible = dialoguePanelCanvasGroup.alpha > 0.5f,
             speakerNamePanelVisible = speakerNamePanelCanvasGroup.alpha > 0.5f,
-            quickMenuPanelVisible = quickMenuPanelCanvasGroup.alpha > 0.5f
+            quickMenuPanelVisible = quickMenuPanelCanvasGroup.alpha > 0.5f,
+            screenFadeAlpha = fadeOverlayCanvasGroup != null ? fadeOverlayCanvasGroup.alpha : 0f,
+            screenFadeColor = fadeOverlayImage != null ? fadeOverlayImage.color : Color.black
         };
     }
 
     public void RestoreState(UISaveData data)
     {
+        InitializeFadeOverlay();
         dialoguePanelCanvasGroup.alpha = data.dialoguePanelVisible ? 1f : 0f;
         speakerNamePanelCanvasGroup.alpha = data.speakerNamePanelVisible ? 1f : 0f;
         quickMenuPanelCanvasGroup.alpha = data.quickMenuPanelVisible ? 1f : 0f;
+        
+        if (fadeOverlayCanvasGroup != null)
+        {
+            fadeOverlayCanvasGroup.alpha = data.screenFadeAlpha;
+            fadeOverlayCanvasGroup.blocksRaycasts = data.screenFadeAlpha > 0.5f;
+        }
+        if (fadeOverlayImage != null)
+        {
+            fadeOverlayImage.color = data.screenFadeColor;
+        }
     }
 
     public void ShowUI(float duration)
@@ -549,6 +618,17 @@ public class UIManager : MonoBehaviour
             return;
         }
 
+        if (EventSystem.current != null && IsAnyMenuButtonSelected())
+        {
+            EventSystem.current.SetSelectedGameObject(null);
+        }
+
+        if (dialogueAnimator != null && dialogueAnimator.IsWaitingForInlineClick)
+        {
+            dialogueAnimator.IsWaitingForInlineClick = false;
+            return;
+        }
+
         if (DialogueManager.Instance != null)
         {
             if (DialogueManager.Instance.IsAutoMode)
@@ -573,6 +653,11 @@ public class UIManager : MonoBehaviour
     }
 
     private void OnCancelPerformed(InputAction.CallbackContext context)
+    {
+        HandleCancelAction();
+    }
+
+    private void HandleCancelAction()
     {
         if (historyPanel != null && historyPanel.gameObject.activeSelf && historyPanel.GetComponent<CanvasGroup>().alpha > 0.5f)
         {
@@ -633,6 +718,32 @@ public class UIManager : MonoBehaviour
             else if (Keyboard.current.f1Key.wasPressedThisFrame)
             {
                 ToggleUIVisibility();
+            }
+        }
+    }
+
+    private void CheckMouseShortcuts()
+    {
+        if (Mouse.current != null)
+        {
+            if (Mouse.current.middleButton.wasPressedThisFrame && !IsAnyPanelActive())
+            {
+                ToggleUIVisibility();
+            }
+
+            if (Mouse.current.rightButton.wasPressedThisFrame)
+            {
+                if (IsAnyPanelActive())
+                {
+                    HandleCancelAction();
+                }
+                else
+                {
+                    if (saveLoadPanel != null)
+                    {
+                        ShowPanelWithFocus(() => saveLoadPanel.Show(true));
+                    }
+                }
             }
         }
     }
@@ -811,4 +922,410 @@ public class UIManager : MonoBehaviour
 
     public string GetCurrentSpeakerName() => speakerNameText != null ? speakerNameText.text : "";
     public string GetCurrentDialogueText() => dialogueText != null ? dialogueText.text : "";
+
+    private bool IsAnyMenuButtonSelected()
+    {
+        if (EventSystem.current == null) return false;
+        GameObject selected = EventSystem.current.currentSelectedGameObject;
+        if (selected == null) return false;
+
+        return selected == (backButton != null ? backButton.gameObject : null) ||
+               selected == (historyButton != null ? historyButton.gameObject : null) ||
+               selected == (saveButton != null ? saveButton.gameObject : null) ||
+               selected == (loadButton != null ? loadButton.gameObject : null) ||
+               selected == (quickSaveButton != null ? quickSaveButton.gameObject : null) ||
+               selected == (quickLoadButton != null ? quickLoadButton.gameObject : null) ||
+               selected == (autoButton != null ? autoButton.gameObject : null) ||
+               selected == (skipButton != null ? skipButton.gameObject : null) ||
+               selected == (preferencesButton != null ? preferencesButton.gameObject : null) ||
+               selected == (mainMenuButton != null ? mainMenuButton.gameObject : null);
+    }
+
+    private void NavigateMenuButtons(int direction)
+    {
+        if (EventSystem.current == null) return;
+
+        List<Button> activeButtons = new List<Button>();
+        Button[] allButtons = new Button[] {
+            backButton,
+            historyButton,
+            skipButton,
+            autoButton,
+            saveButton,
+            loadButton,
+            quickSaveButton,
+            quickLoadButton,
+            preferencesButton,
+            mainMenuButton
+        };
+
+        foreach (Button btn in allButtons)
+        {
+            if (btn != null && btn.gameObject.activeInHierarchy && btn.interactable)
+            {
+                activeButtons.Add(btn);
+            }
+        }
+
+        if (activeButtons.Count == 0) return;
+
+        GameObject currentSelected = EventSystem.current.currentSelectedGameObject;
+        int currentIndex = -1;
+
+        if (currentSelected != null)
+        {
+            for (int i = 0; i < activeButtons.Count; i++)
+            {
+                if (activeButtons[i].gameObject == currentSelected)
+                {
+                    currentIndex = i;
+                    break;
+                }
+            }
+        }
+
+        if (currentIndex == -1)
+        {
+            // Nothing selected, select first or last depending on direction
+            int targetIndex = direction > 0 ? 0 : activeButtons.Count - 1;
+            EventSystem.current.SetSelectedGameObject(activeButtons[targetIndex].gameObject);
+            Debug.Log($"[UIManager] Selected first active menu button: {activeButtons[targetIndex].gameObject.name}");
+        }
+        else
+        {
+            // Move index with wrap-around
+            int targetIndex = currentIndex + direction;
+            if (targetIndex < 0) targetIndex = activeButtons.Count - 1;
+            if (targetIndex >= activeButtons.Count) targetIndex = 0;
+            EventSystem.current.SetSelectedGameObject(activeButtons[targetIndex].gameObject);
+            Debug.Log($"[UIManager] Navigated selection to: {activeButtons[targetIndex].gameObject.name}");
+        }
+    }
+
+    private void HandleMenuNavigationInputs()
+    {
+        if (IsAnyPanelActive()) return;
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsWaitingForChoice()) return;
+
+        // Check Up arrow or gamepad D-pad Up to clear selection
+        bool upPressed = false;
+        if (Keyboard.current != null)
+        {
+            upPressed = Keyboard.current.upArrowKey.wasPressedThisFrame || Keyboard.current.wKey.wasPressedThisFrame;
+        }
+        if (Gamepad.current != null)
+        {
+            upPressed = upPressed || Gamepad.current.dpad.up.wasPressedThisFrame;
+        }
+
+        if (upPressed)
+        {
+            if (EventSystem.current != null && IsAnyMenuButtonSelected())
+            {
+                EventSystem.current.SetSelectedGameObject(null);
+                Debug.Log("[UIManager] Cleared menu button selection (pressed UP). Proceeding dialogue is re-enabled.");
+            }
+            return;
+        }
+
+        // Check Left/Right arrows or gamepad D-pad Left/Right
+        bool leftPressed = false;
+        bool rightPressed = false;
+
+        if (Keyboard.current != null)
+        {
+            leftPressed = Keyboard.current.leftArrowKey.wasPressedThisFrame || Keyboard.current.aKey.wasPressedThisFrame;
+            rightPressed = Keyboard.current.rightArrowKey.wasPressedThisFrame || Keyboard.current.dKey.wasPressedThisFrame;
+        }
+        if (Gamepad.current != null)
+        {
+            leftPressed = leftPressed || Gamepad.current.dpad.left.wasPressedThisFrame;
+            rightPressed = rightPressed || Gamepad.current.dpad.right.wasPressedThisFrame;
+        }
+
+        if (leftPressed)
+        {
+            NavigateMenuButtons(-1);
+        }
+        else if (rightPressed)
+        {
+            NavigateMenuButtons(1);
+        }
+    }
+
+    private Dictionary<Button, CanvasGroup> buttonCanvasGroups = new Dictionary<Button, CanvasGroup>();
+    private float noActiveButtonTimer = 0f;
+    private Button lastActiveButton = null;
+
+    private CanvasGroup GetOrCreateCanvasGroup(Button btn)
+    {
+        if (btn == null) return null;
+        if (buttonCanvasGroups.TryGetValue(btn, out CanvasGroup cg))
+        {
+            return cg;
+        }
+
+        cg = btn.GetComponent<CanvasGroup>();
+        if (cg == null)
+        {
+            cg = btn.gameObject.AddComponent<CanvasGroup>();
+        }
+        buttonCanvasGroups[btn] = cg;
+        return cg;
+    }
+
+    private Button GetCurrentlyHoveredOrSelectedButton()
+    {
+        if (EventSystem.current == null) return null;
+
+        Button[] allButtons = new Button[] {
+            backButton,
+            historyButton,
+            skipButton,
+            autoButton,
+            saveButton,
+            loadButton,
+            quickSaveButton,
+            quickLoadButton,
+            preferencesButton,
+            mainMenuButton
+        };
+
+        // 1. Check selected GameObject (keyboard/gamepad navigation)
+        GameObject selectedObj = EventSystem.current.currentSelectedGameObject;
+        if (selectedObj != null)
+        {
+            foreach (Button btn in allButtons)
+            {
+                if (btn != null && btn.gameObject == selectedObj)
+                {
+                    return btn;
+                }
+            }
+        }
+
+        // 2. Check hovered GameObject (mouse pointer)
+        PointerEventData pointerData = new PointerEventData(EventSystem.current);
+        Vector2 pointerPos = Vector2.zero;
+        if (Pointer.current != null) pointerPos = Pointer.current.position.ReadValue();
+        else if (Mouse.current != null) pointerPos = Mouse.current.position.ReadValue();
+        else pointerPos = Input.mousePosition;
+        
+        pointerData.position = pointerPos;
+        List<RaycastResult> raycastResults = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(pointerData, raycastResults);
+
+        foreach (var result in raycastResults)
+        {
+            if (result.gameObject != null)
+            {
+                foreach (Button btn in allButtons)
+                {
+                    if (btn != null && result.gameObject.transform.IsChildOf(btn.transform))
+                    {
+                        return btn;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private void UpdateMenuButtonVisuals()
+    {
+        Button[] allButtons = new Button[] {
+            backButton,
+            historyButton,
+            skipButton,
+            autoButton,
+            saveButton,
+            loadButton,
+            quickSaveButton,
+            quickLoadButton,
+            preferencesButton,
+            mainMenuButton
+        };
+
+        Button activeBtn = GetCurrentlyHoveredOrSelectedButton();
+        
+        if (activeBtn != null)
+        {
+            noActiveButtonTimer = 0f;
+            lastActiveButton = activeBtn;
+        }
+        else
+        {
+            noActiveButtonTimer += Time.deltaTime;
+            if (noActiveButtonTimer < 0.15f) // 150ms hover-bridge to avoid flickers
+            {
+                activeBtn = lastActiveButton;
+            }
+            else
+            {
+                lastActiveButton = null;
+            }
+        }
+
+        bool anyActive = (activeBtn != null);
+        float transitionSpeed = 8f;
+
+        foreach (Button btn in allButtons)
+        {
+            if (btn == null || !btn.gameObject.activeInHierarchy) continue;
+
+            CanvasGroup cg = GetOrCreateCanvasGroup(btn);
+            if (cg == null) continue;
+
+            float targetAlpha = 1f;
+            float targetScale = 1f;
+
+            if (anyActive)
+            {
+                if (btn == activeBtn)
+                {
+                    targetAlpha = 1f;
+                    targetScale = 1.05f;
+                }
+                else
+                {
+                    targetAlpha = 0.4f;
+                    targetScale = 0.85f;
+                }
+            }
+
+            // Smoothly transition alpha
+            cg.alpha = Mathf.MoveTowards(cg.alpha, targetAlpha, Time.deltaTime * transitionSpeed);
+
+            // Smoothly transition scale
+            Vector3 currentScale = btn.transform.localScale;
+            float newScale = Mathf.MoveTowards(currentScale.x, targetScale, Time.deltaTime * transitionSpeed * 0.8f);
+            btn.transform.localScale = new Vector3(newScale, newScale, 1f);
+        }
+    }
+
+    private CanvasGroup fadeOverlayCanvasGroup;
+    private Image fadeOverlayImage;
+    private Coroutine screenFadeCoroutine;
+
+    private void InitializeFadeOverlay()
+    {
+        if (fadeOverlayCanvasGroup != null) return;
+
+        Transform existing = transform.Find("VNS_FadeOverlay");
+        GameObject overlayObj;
+        if (existing != null)
+        {
+            overlayObj = existing.gameObject;
+        }
+        else
+        {
+            overlayObj = new GameObject("VNS_FadeOverlay");
+            overlayObj.transform.SetParent(transform, false);
+            
+            RectTransform rect = overlayObj.AddComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.sizeDelta = Vector2.zero;
+            rect.anchoredPosition = Vector2.zero;
+
+            Image img = overlayObj.AddComponent<Image>();
+            img.color = Color.black;
+            
+            CanvasGroup cg = overlayObj.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            cg.blocksRaycasts = false;
+            cg.interactable = false;
+
+            overlayObj.transform.SetAsLastSibling();
+        }
+
+        fadeOverlayCanvasGroup = overlayObj.GetComponent<CanvasGroup>();
+        fadeOverlayImage = overlayObj.GetComponent<Image>();
+    }
+
+    public void FadeOutScreen(float duration, Color color, System.Action onComplete = null)
+    {
+        InitializeFadeOverlay();
+        if (screenFadeCoroutine != null) StopCoroutine(screenFadeCoroutine);
+        screenFadeCoroutine = StartCoroutine(ScreenFadeCoroutine(0f, 1f, duration, color, onComplete));
+    }
+
+    public void FadeInScreen(float duration, System.Action onComplete = null)
+    {
+        InitializeFadeOverlay();
+        if (screenFadeCoroutine != null) StopCoroutine(screenFadeCoroutine);
+        screenFadeCoroutine = StartCoroutine(ScreenFadeCoroutine(1f, 0f, duration, fadeOverlayImage.color, onComplete));
+    }
+
+    private IEnumerator ScreenFadeCoroutine(float startAlpha, float endAlpha, float duration, Color color, System.Action onComplete)
+    {
+        if (fadeOverlayImage != null)
+        {
+            fadeOverlayImage.color = color;
+        }
+
+        if (fadeOverlayCanvasGroup != null)
+        {
+            fadeOverlayCanvasGroup.blocksRaycasts = endAlpha > 0.5f;
+        }
+
+        if (duration <= 0.01f || (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping))
+        {
+            if (fadeOverlayCanvasGroup != null) fadeOverlayCanvasGroup.alpha = endAlpha;
+            onComplete?.Invoke();
+            yield break;
+        }
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = Mathf.Clamp01(elapsed / duration);
+            if (fadeOverlayCanvasGroup != null)
+            {
+                fadeOverlayCanvasGroup.alpha = Mathf.Lerp(startAlpha, endAlpha, progress);
+            }
+            yield return null;
+        }
+
+        if (fadeOverlayCanvasGroup != null)
+        {
+            fadeOverlayCanvasGroup.alpha = endAlpha;
+        }
+
+        onComplete?.Invoke();
+    }
+
+    private string InterpolateVariables(string originalText)
+    {
+        if (string.IsNullOrEmpty(originalText)) return originalText;
+        if (VariableManager.Instance == null) return originalText;
+
+        int startIndex = 0;
+        while (true)
+        {
+            int openBrace = originalText.IndexOf('{', startIndex);
+            if (openBrace == -1) break;
+
+            int closeBrace = originalText.IndexOf('}', openBrace);
+            if (closeBrace == -1) break;
+
+            string varName = originalText.Substring(openBrace + 1, closeBrace - openBrace - 1).Trim();
+            
+            if (varName.ToLower() == "w" || varName.ToLower().StartsWith("p="))
+            {
+                startIndex = closeBrace + 1;
+                continue;
+            }
+
+            object val = VariableManager.Instance.GetVariableObject(varName);
+            string valStr = val != null ? val.ToString() : $"[Variable '{varName}' not found]";
+
+            originalText = originalText.Remove(openBrace, closeBrace - openBrace + 1).Insert(openBrace, valStr);
+            startIndex = openBrace + valStr.Length;
+        }
+
+        return originalText;
+    }
 }
