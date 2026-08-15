@@ -93,6 +93,16 @@ public class ChoiceUI : MonoBehaviour
                 spawnedButtons.Add(btnComponent);
             }
 
+            // Setup HorizontalLayoutGroup on the button to keep text padded and aligned
+            HorizontalLayoutGroup buttonLayout = buttonObj.GetComponent<HorizontalLayoutGroup>();
+            if (buttonLayout == null) buttonLayout = buttonObj.AddComponent<HorizontalLayoutGroup>();
+            buttonLayout.childAlignment = TextAnchor.MiddleCenter;
+            buttonLayout.childControlWidth = true;
+            buttonLayout.childControlHeight = true;
+            buttonLayout.childForceExpandWidth = false;
+            buttonLayout.childForceExpandHeight = false;
+            buttonLayout.padding = new RectOffset(30, 30, 15, 15);
+
             // Ensure choice button expands dynamically horizontally to fit longer text
             ContentSizeFitter fitter = buttonObj.GetComponent<ContentSizeFitter>();
             if (fitter == null) fitter = buttonObj.AddComponent<ContentSizeFitter>();
@@ -105,6 +115,15 @@ public class ChoiceUI : MonoBehaviour
             {
                 textMesh.enableWordWrapping = false;
                 textMesh.overflowMode = TextOverflowModes.Overflow;
+            }
+
+            // Ensure the parent container centers choice buttons horizontally and doesn't force widths
+            VerticalLayoutGroup containerLayout = choiceContainer.GetComponent<VerticalLayoutGroup>();
+            if (containerLayout != null)
+            {
+                containerLayout.childAlignment = TextAnchor.MiddleCenter;
+                containerLayout.childControlWidth = false;
+                containerLayout.childForceExpandWidth = false;
             }
 
             // Configure CanvasGroup for fade-in
@@ -196,7 +215,8 @@ public class ChoiceUI : MonoBehaviour
     private IEnumerator FadeInButton(CanvasGroup cg, float duration)
     {
         float elapsed = 0f;
-        Vector3 startLocalPos = cg.transform.localPosition;
+        float startLocalY = cg.transform.localPosition.y;
+        float startLocalZ = cg.transform.localPosition.z;
 
         while (elapsed < duration)
         {
@@ -209,7 +229,8 @@ public class ChoiceUI : MonoBehaviour
 
             // Subtle slide up offset (15 units)
             float offset = Mathf.Lerp(-15f, 0f, eased);
-            cg.transform.localPosition = new Vector3(startLocalPos.x, startLocalPos.y + offset, startLocalPos.z);
+            float currentX = cg.transform.localPosition.x;
+            cg.transform.localPosition = new Vector3(currentX, startLocalY + offset, startLocalZ);
 
             yield return null;
         }
@@ -217,7 +238,6 @@ public class ChoiceUI : MonoBehaviour
         if (cg != null)
         {
             cg.alpha = 1f;
-            cg.transform.localPosition = startLocalPos;
             cg.interactable = true;
         }
     }
