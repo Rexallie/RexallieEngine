@@ -19,6 +19,20 @@ public class ChoiceUI : MonoBehaviour
     [Tooltip("Optional highlighted sprite for choice buttons.")]
     public Sprite highlightedSprite;
 
+    [Header("Choice Button Padding overrides")]
+    [Tooltip("Padding at the left of the button text.")]
+    public int paddingLeft = 30;
+    [Tooltip("Padding at the right of the button text.")]
+    public int paddingRight = 30;
+    [Tooltip("Padding at the top of the button text.")]
+    public int paddingTop = 15;
+    [Tooltip("Padding at the bottom of the button text.")]
+    public int paddingBottom = 15;
+
+    [Header("Choice Container Layout overrides")]
+    [Tooltip("Spacing between choice buttons.")]
+    public float buttonSpacing = 10f;
+
     private List<Button> spawnedButtons = new List<Button>();
     private float noActiveButtonTimer = 0f;
     private Button lastActiveButton = null;
@@ -101,7 +115,7 @@ public class ChoiceUI : MonoBehaviour
             buttonLayout.childControlHeight = true;
             buttonLayout.childForceExpandWidth = false;
             buttonLayout.childForceExpandHeight = false;
-            buttonLayout.padding = new RectOffset(30, 30, 15, 15);
+            buttonLayout.padding = new RectOffset(paddingLeft, paddingRight, paddingTop, paddingBottom);
 
             // Ensure choice button expands dynamically horizontally to fit longer text
             ContentSizeFitter fitter = buttonObj.GetComponent<ContentSizeFitter>();
@@ -124,6 +138,7 @@ public class ChoiceUI : MonoBehaviour
                 containerLayout.childAlignment = TextAnchor.MiddleCenter;
                 containerLayout.childControlWidth = false;
                 containerLayout.childForceExpandWidth = false;
+                containerLayout.spacing = buttonSpacing;
             }
 
             // Configure CanvasGroup for fade-in
