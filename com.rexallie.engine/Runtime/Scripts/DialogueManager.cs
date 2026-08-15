@@ -56,6 +56,32 @@ public class DialogueScriptParser
 {
     private int nodeCounter = 0;
 
+    private bool IsLineLabel(string[] lines, int index)
+    {
+        string line = lines[index].Trim();
+        if (!line.EndsWith(":") || line.Contains(" ") || line.Contains("[") || line.Contains("<"))
+            return false;
+
+        string name = line.Substring(0, line.Length - 1).Trim();
+        if (name.ToLower() == "narrator")
+            return false;
+
+        // Lookahead to check if the next active line is a dialogue text block
+        for (int j = index + 1; j < lines.Length; j++)
+        {
+            string nextLine = lines[j].Trim();
+            if (string.IsNullOrWhiteSpace(nextLine) || nextLine.StartsWith("#") || nextLine.StartsWith("//"))
+                continue;
+
+            if (nextLine.StartsWith("@") || nextLine.Contains("->") || nextLine.EndsWith(":"))
+            {
+                return true;
+            }
+            return false;
+        }
+        return true;
+    }
+
     public ScriptData ParseScript(string scriptText)
     {
         ScriptData data = new ScriptData
@@ -71,7 +97,7 @@ public class DialogueScriptParser
         for (int i = 0; i < lines.Length; i++)
         {
             string line = lines[i].Trim();
-            if (line.EndsWith(":") && !line.Contains(" ") && !line.Contains("[") && !line.Contains("<"))
+            if (IsLineLabel(lines, i))
             {
                 string label = line.Substring(0, line.Length - 1).Trim();
                 if (!data.labels.ContainsKey(label))
@@ -85,7 +111,7 @@ public class DialogueScriptParser
         {
             string line = lines[i].Trim();
 
-            if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#") || line.StartsWith("//") || (line.EndsWith(":") && !line.Contains(" ") && !line.Contains("[") && !line.Contains("<")))
+            if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#") || line.StartsWith("//") || IsLineLabel(lines, i))
                 continue;
 
             if (line.StartsWith("@choice"))

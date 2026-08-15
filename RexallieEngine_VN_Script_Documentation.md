@@ -32,6 +32,14 @@ across multiple lines if needed.
 - **`:`**: A colon separates the speaker description from the dialogue.
 - **Dialogue Text**: The text can span multiple lines. The parser wraps and joins multiline text with a newline `\n`. It stops reading the line when it detects an empty line, a command (`@`), a choice arrow (`->`), or a new label.
 
+### Narrator Lines (No Speaker Box)
+To write narrator speech or scene descriptions where no speaker box or name plate should be shown, use the reserved `narrator` keyword as the speaker ID:
+```vnscript
+narrator:
+The sun rises slowly over the campus, casting long shadows across the empty paths.
+```
+- This automatically hides the speaker box name panel and applies the default dialogue text font/color formatting.
+
 ### Rich Text Styling
 The dialogue display is powered by TextMeshPro, meaning you can use HTML-style rich text tags in your dialogue lines.
 - **Bold**: `This is <b>bold</b> text.`
