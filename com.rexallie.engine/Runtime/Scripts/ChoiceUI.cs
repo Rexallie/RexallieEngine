@@ -93,17 +93,17 @@ public class ChoiceUI : MonoBehaviour
                 spawnedButtons.Add(btnComponent);
             }
 
-            // Ensure choice button expands dynamically to fit longer text
+            // Ensure choice button expands dynamically horizontally to fit longer text
             ContentSizeFitter fitter = buttonObj.GetComponent<ContentSizeFitter>();
             if (fitter == null) fitter = buttonObj.AddComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            fitter.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
 
-            // Ensure the TextMeshPro child is also configured correctly to wrap
+            // Ensure the TextMeshPro child is configured correctly to not wrap, forcing horizontal expansion
             TextMeshProUGUI textMesh = buttonObj.GetComponentInChildren<TextMeshProUGUI>();
             if (textMesh != null)
             {
-                textMesh.textWrappingMode = TextWrappingModes.Normal;
+                textMesh.enableWordWrapping = false;
                 textMesh.overflowMode = TextOverflowModes.Overflow;
             }
 
@@ -139,8 +139,16 @@ public class ChoiceUI : MonoBehaviour
 
         if (buttons.Count > 0 && EventSystem.current != null)
         {
-            // Focus the first button for keyboard/gamepad navigation
-            EventSystem.current.SetSelectedGameObject(buttons[0]);
+            if (UIManager.WasLastInputGamepadOrKeyboard)
+            {
+                // Focus the first button for keyboard/gamepad navigation
+                EventSystem.current.SetSelectedGameObject(buttons[0]);
+            }
+            else
+            {
+                // Clear selection so no option is highlighted by default for mouse/touch inputs
+                EventSystem.current.SetSelectedGameObject(null);
+            }
         }
     }
 

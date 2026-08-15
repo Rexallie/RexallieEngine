@@ -17,6 +17,7 @@ public struct MenuButtonSprites
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
+    public static bool WasLastInputGamepadOrKeyboard { get; private set; } = false;
 
     private InputSystem_Actions _playerInput;
 
@@ -283,6 +284,7 @@ public class UIManager : MonoBehaviour
 
     private void OnAdvanceDialogue(InputAction.CallbackContext context)
     {
+        WasLastInputGamepadOrKeyboard = true;
         if (IsAnyPanelActive()) return;
         if (DialogueManager.Instance != null && DialogueManager.Instance.IsWaitingForChoice()) return;
 
@@ -658,6 +660,7 @@ public class UIManager : MonoBehaviour
 
     private void ProcessClick()
     {
+        WasLastInputGamepadOrKeyboard = false;
         if (isUIHidden)
         {
             ShowUI(0.3f);
