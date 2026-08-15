@@ -34,6 +34,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private DialogueAnimator dialogueAnimator;
     [SerializeField] private Image dialogueBoxBackground;
     [SerializeField] private Image dialogueBoxAccent;
+    [SerializeField] private Image speakerNameBoxImage;
 
     [Header("UI Animation Panels")]
     [SerializeField] private CanvasGroup dialoguePanelCanvasGroup;
@@ -99,6 +100,7 @@ public class UIManager : MonoBehaviour
     private Color defaultSpeakerColor;
     private TMP_FontAsset defaultSpeakerFont;
     private Color defaultAccentColor = Color.white;
+    private Color defaultSpeakerBoxColor = Color.white;
 
     private void Awake()
     {
@@ -142,6 +144,10 @@ public class UIManager : MonoBehaviour
         if (dialogueBoxAccent != null)
         {
             defaultAccentColor = dialogueBoxAccent.color;
+        }
+        if (speakerNameBoxImage != null)
+        {
+            defaultSpeakerBoxColor = speakerNameBoxImage.color;
         }
 
         Button[] allButtons = new Button[] {
@@ -1422,6 +1428,10 @@ public class UIManager : MonoBehaviour
             {
                 dialogueBoxAccent.color = charData.characterColor;
             }
+            if (speakerNameBoxImage != null)
+            {
+                speakerNameBoxImage.color = charData.characterColor;
+            }
 
             // 2. Custom Font Asset
             if (charData.customFont != null)
@@ -1451,6 +1461,10 @@ public class UIManager : MonoBehaviour
             if (dialogueBoxAccent != null)
             {
                 dialogueBoxAccent.color = defaultAccentColor;
+            }
+            if (speakerNameBoxImage != null)
+            {
+                speakerNameBoxImage.color = defaultSpeakerBoxColor;
             }
         }
     }
