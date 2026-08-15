@@ -20,6 +20,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI speakerNameText;
     [SerializeField] private TextMeshProUGUI dialogueText;
     [SerializeField] private DialogueAnimator dialogueAnimator;
+    [SerializeField] private Image dialogueBoxBackground;
+    [SerializeField] private Image dialogueBoxAccent;
 
     [Header("UI Animation Panels")]
     [SerializeField] private CanvasGroup dialoguePanelCanvasGroup;
@@ -80,6 +82,12 @@ public class UIManager : MonoBehaviour
     private Vector2 lastMousePosition = Vector2.zero;
 
 
+    private Color defaultDialogueColor;
+    private TMP_FontAsset defaultDialogueFont;
+    private Color defaultSpeakerColor;
+    private TMP_FontAsset defaultSpeakerFont;
+    private Color defaultAccentColor = Color.white;
+
     private void Awake()
     {
         if (Instance == null) { Instance = this; } else { Destroy(gameObject); }
@@ -108,6 +116,22 @@ public class UIManager : MonoBehaviour
 
     void Start()
     {
+        // Capture default visual styles for font, text colors, and dialogue box accent
+        if (dialogueText != null)
+        {
+            defaultDialogueColor = dialogueText.color;
+            defaultDialogueFont = dialogueText.font;
+        }
+        if (speakerNameText != null)
+        {
+            defaultSpeakerColor = speakerNameText.color;
+            defaultSpeakerFont = speakerNameText.font;
+        }
+        if (dialogueBoxAccent != null)
+        {
+            defaultAccentColor = dialogueBoxAccent.color;
+        }
+
         Button[] allButtons = new Button[] {
             backButton,
             historyButton,
@@ -289,14 +313,18 @@ public class UIManager : MonoBehaviour
         speakerNameText.text = displayName;
 
         AudioClip voiceBlip = null;
+        CharacterData charData = null;
         if (CharacterManager.Instance != null)
         {
-            CharacterData charData = CharacterManager.Instance.GetCharacterData(line.speakerID);
+            charData = CharacterManager.Instance.GetCharacterData(line.speakerID);
             if (charData != null)
             {
                 voiceBlip = charData.voiceBlip;
             }
         }
+
+        // Apply Character Custom Styling (Fonts & Theme Colors)
+        ApplyCharacterStyling(charData);
 
         if (dialogueAnimator != null)
         {
@@ -319,7 +347,9 @@ public class UIManager : MonoBehaviour
             }
         }
 
-        DialogueLogManager.Instance.AddLog(displayName, interpolatedText);
+        // Strip custom inline tags before adding to the history log
+        string cleanHistoryText = StripCustomTags(interpolatedText);
+        DialogueLogManager.Instance.AddLog(displayName, cleanHistoryText);
     }
 
     // --- NEW: Method to toggle Auto mode ---
@@ -1327,5 +1357,68 @@ public class UIManager : MonoBehaviour
         }
 
         return originalText;
+    }
+
+    private string StripCustomTags(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        
+        // Remove {w} (case-insensitive)
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\{w\}", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        
+        // Remove {p=...} (case-insensitive)
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\{p=[^}]*\}", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        
+        return text;
+    }
+
+    private void ApplyCharacterStyling(CharacterData charData)
+    {
+        if (charData != null)
+        {
+            // 1. Theme Color (for dialogue text and dialogue box accent)
+            if (dialogueText != null)
+            {
+                dialogueText.color = charData.characterColor;
+            }
+            if (speakerNameText != null)
+            {
+                speakerNameText.color = charData.nameColor;
+            }
+            if (dialogueBoxAccent != null)
+            {
+                dialogueBoxAccent.color = charData.characterColor;
+            }
+
+            // 2. Custom Font Asset
+            if (charData.customFont != null)
+            {
+                if (dialogueText != null) dialogueText.font = charData.customFont;
+                if (speakerNameText != null) speakerNameText.font = charData.customFont;
+            }
+            else
+            {
+                if (dialogueText != null) dialogueText.font = defaultDialogueFont;
+                if (speakerNameText != null) speakerNameText.font = defaultSpeakerFont;
+            }
+        }
+        else
+        {
+            // Revert back to original/default style settings (for narrator / empty speakers)
+            if (dialogueText != null)
+            {
+                dialogueText.color = defaultDialogueColor;
+                dialogueText.font = defaultDialogueFont;
+            }
+            if (speakerNameText != null)
+            {
+                speakerNameText.color = defaultSpeakerColor;
+                speakerNameText.font = defaultSpeakerFont;
+            }
+            if (dialogueBoxAccent != null)
+            {
+                dialogueBoxAccent.color = defaultAccentColor;
+            }
+        }
     }
 }

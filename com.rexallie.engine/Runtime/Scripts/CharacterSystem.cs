@@ -230,6 +230,15 @@ public class CharacterManager : MonoBehaviour
         }
     }
 
+    public CharacterController GetCharacter(string characterID)
+    {
+        if (activeCharacters.ContainsKey(characterID.ToLower()))
+        {
+            return activeCharacters[characterID.ToLower()];
+        }
+        return null;
+    }
+
     private CharacterController GetOrCreateController(string characterID)
     {
         if (activeCharacters.ContainsKey(characterID.ToLower()))

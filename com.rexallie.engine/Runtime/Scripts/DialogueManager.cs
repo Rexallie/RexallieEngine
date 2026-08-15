@@ -261,6 +261,22 @@ public class DialogueManager : MonoBehaviour
         OnVNSTrigger?.Invoke(eventName, parameters);
     }
 
+    [System.Serializable]
+    public class ReplaySceneInfo
+    {
+        public string cgId;
+        public string scriptName;
+        public int startNodeIndex;
+        public int endNodeIndex;
+    }
+
+    private Dictionary<string, ReplaySceneInfo> replayRegistry = new Dictionary<string, ReplaySceneInfo>();
+    private bool isReplaying = false;
+    private int activeReplayEndIndex = -1;
+
+    public bool IsReplaying => isReplaying;
+    public event Action OnReplayEnded;
+
     // --- NEW: This flag prevents recording history during a restore operation ---
     private bool isRestoringState = false;
     private Coroutine currentNodeCoroutine;
@@ -282,11 +298,30 @@ public class DialogueManager : MonoBehaviour
         // --- THIS IS A KEY CHANGE ---
         // We now subscribe a new method to this event to handle history recording.
         OnDialogueLineDisplayed += OnDialogueLineWasDisplayed;
+
+        if (LocalizationManager.Instance != null)
+        {
+            LocalizationManager.Instance.OnLanguageChanged += HandleLanguageChange;
+        }
+
+        string lang = PlayerPrefs.GetString("language", "en");
+        InitializeReplayRegistry(lang);
     }
 
     void OnDestroy()
     {
         OnDialogueLineDisplayed -= OnDialogueLineWasDisplayed;
+
+        if (LocalizationManager.Instance != null)
+        {
+            LocalizationManager.Instance.OnLanguageChanged -= HandleLanguageChange;
+        }
+    }
+
+    private void HandleLanguageChange(TMPro.TMP_FontAsset font)
+    {
+        string currentLanguage = PlayerPrefs.GetString("language", "en");
+        InitializeReplayRegistry(currentLanguage);
     }
 
     // --- THIS IS THE NEW METHOD ---
@@ -371,10 +406,25 @@ public class DialogueManager : MonoBehaviour
     private IEnumerator ProcessCurrentNode()
     {
         isProcessingNode = true;
+
+        // Check if replay has run past its end marker
+        if (isReplaying && activeReplayEndIndex != -1 && currentNodeIndex > activeReplayEndIndex)
+        {
+            EndReplay();
+            yield break;
+        }
+
         if (currentScript == null || currentNodeIndex >= currentScript.nodes.Count)
         {
-            OnDialogueEnded?.Invoke();
-            isProcessingNode = false;
+            if (isReplaying)
+            {
+                EndReplay();
+            }
+            else
+            {
+                OnDialogueEnded?.Invoke();
+                isProcessingNode = false;
+            }
             yield break;
         }
 
@@ -529,6 +579,99 @@ public class DialogueManager : MonoBehaviour
     public bool IsDialogueActive()
     {
         return currentScript != null && currentNodeIndex < currentScript.nodes.Count;
+    }
+
+    public void InitializeReplayRegistry(string language)
+    {
+        replayRegistry.Clear();
+        
+        TextAsset[] scriptAssets = Resources.LoadAll<TextAsset>($"Dialogues/{language}");
+        if (scriptAssets == null || scriptAssets.Length == 0) return;
+
+        foreach (var asset in scriptAssets)
+        {
+            ScriptData script = parser.ParseScript(asset.text);
+            string scriptName = asset.name;
+
+            ReplaySceneInfo currentActiveScene = null;
+
+            for (int i = 0; i < script.nodes.Count; i++)
+            {
+                if (script.nodes[i] is ActionNode actionNode)
+                {
+                    string actionName = actionNode.action.ToLower();
+                    if (actionName == "replay_start" || actionName == "replaystart")
+                    {
+                        string cgId = actionNode.parameters.GetValueOrDefault("param1", "");
+                        if (!string.IsNullOrEmpty(cgId))
+                        {
+                            currentActiveScene = new ReplaySceneInfo
+                            {
+                                cgId = cgId,
+                                scriptName = scriptName,
+                                startNodeIndex = i,
+                                endNodeIndex = -1
+                            };
+                        }
+                    }
+                    else if (actionName == "replay_end" || actionName == "replayend")
+                    {
+                        if (currentActiveScene != null)
+                        {
+                            currentActiveScene.endNodeIndex = i;
+                            replayRegistry[currentActiveScene.cgId.ToLower()] = currentActiveScene;
+                            currentActiveScene = null;
+                        }
+                    }
+                }
+            }
+
+            if (currentActiveScene != null)
+            {
+                currentActiveScene.endNodeIndex = script.nodes.Count - 1;
+                replayRegistry[currentActiveScene.cgId.ToLower()] = currentActiveScene;
+            }
+        }
+
+        Debug.Log($"[DialogueManager] Replay registry initialized with {replayRegistry.Count} replayable scenes.");
+    }
+
+    public void StartReplay(string cgId)
+    {
+        string cgKey = cgId.ToLower();
+        if (!replayRegistry.TryGetValue(cgKey, out ReplaySceneInfo info))
+        {
+            Debug.LogError($"[DialogueManager] Replay scene not found for CG ID '{cgId}'");
+            return;
+        }
+
+        Debug.Log($"[DialogueManager] Starting replay for CG ID '{cgId}' in script '{info.scriptName}' from index {info.startNodeIndex} to {info.endNodeIndex}");
+
+        isReplaying = true;
+        activeReplayEndIndex = info.endNodeIndex;
+
+        string currentLanguage = PlayerPrefs.GetString("language", "en");
+        LoadScriptFromFile(currentLanguage, info.scriptName);
+
+        currentNodeIndex = info.startNodeIndex;
+
+        if (currentNodeCoroutine != null) StopCoroutine(currentNodeCoroutine);
+        currentNodeCoroutine = StartCoroutine(ProcessCurrentNode());
+    }
+
+    public void EndReplay()
+    {
+        if (!isReplaying) return;
+        Debug.Log("[DialogueManager] Replay finished. Returning to gallery/menu.");
+        isReplaying = false;
+        activeReplayEndIndex = -1;
+        isProcessingNode = false;
+        
+        if (currentNodeCoroutine != null) StopCoroutine(currentNodeCoroutine);
+        currentNodeCoroutine = null;
+
+        OnReplayEnded?.Invoke();
+        OnDialogueEnded?.Invoke();
     }
 
     public bool IsWaitingForChoice()

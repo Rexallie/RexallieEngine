@@ -13,6 +13,12 @@ public class CharacterData : ScriptableObject
 
     public Color nameColor = Color.white;
 
+    [Header("Visual Customization")]
+    [Tooltip("The main color theme for this character. Used to tint UI panels, dialogue text, or highlights.")]
+    public Color characterColor = Color.white;
+    [Tooltip("A custom font asset to use when this character is speaking. Leave empty to use the default VN font.")]
+    public TMPro.TMP_FontAsset customFont;
+
     [Header("Base Portraits (Body/Outfit)")]
     public List<Portrait> portraits = new List<Portrait>();
 

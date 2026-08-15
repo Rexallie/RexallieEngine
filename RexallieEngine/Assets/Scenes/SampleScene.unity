@@ -11084,6 +11084,7 @@ MonoBehaviour:
   quickLoadButton: {fileID: 495869948}
   skipButton: {fileID: 530834200}
   autoButton: {fileID: 1437696425}
+  mainMenuButton: {fileID: 642383345}
   preferencesPanel: {fileID: 130095534}
   preferencesButton: {fileID: 1823079428}
   dialogueMasterCanvasGroup: {fileID: 1856805704}

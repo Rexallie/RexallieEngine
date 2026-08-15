@@ -17,6 +17,12 @@ public class CharacterController : MonoBehaviour
     public float moveSpeed = 2f;
     public float fadeSpeed = 1f;
 
+    [Header("Breathing Animation")]
+    public bool isBreathing = true;
+    public float breatheSpeed = 1.5f;       // Oscillations frequency
+    public float breatheIntensityY = 0.015f; // Vertical stretch
+    public float breatheIntensityX = 0.005f; // Horizontal squash
+
     [Header("Highlight Settings")]
     [Tooltip("The color tint to apply to the character when they are not speaking.")]
     [SerializeField] private Color dimColor = new Color(0.5f, 0.5f, 0.5f, 1f);
@@ -55,12 +61,21 @@ public class CharacterController : MonoBehaviour
         }
     }
 
+    private Vector3 baseScale = Vector3.one;
+
     private void Start()
     {
+        baseScale = transform.localScale;
+
         if (DialogueManager.Instance != null)
         {
             DialogueManager.Instance.OnDialogueLineDisplayed += UpdateCharacter;
         }
+    }
+
+    public void RestoreBaseScale()
+    {
+        transform.localScale = baseScale;
     }
 
     void OnDestroy()
@@ -383,4 +398,18 @@ public class CharacterController : MonoBehaviour
     public string GetCharacterName() { return currentCharacter.characterID; }
     public string GetCurrentPortrait() { return currentPortrait; }
     public string GetCurrentExpression() { return currentExpression; }
+
+    private float breatheTime = 0f;
+
+    void Update()
+    {
+        if (isBreathing)
+        {
+            breatheTime += Time.deltaTime * breatheSpeed;
+            float scaleY = 1.0f + Mathf.Sin(breatheTime) * breatheIntensityY;
+            float scaleX = 1.0f - Mathf.Sin(breatheTime) * breatheIntensityX;
+
+            transform.localScale = new Vector3(baseScale.x * scaleX, baseScale.y * scaleY, baseScale.z);
+        }
+    }
 }

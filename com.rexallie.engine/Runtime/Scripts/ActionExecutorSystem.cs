@@ -86,6 +86,15 @@ public class ActionExecutor : MonoBehaviour
             case "load_script":
                 ExecuteLoadScript(action);
                 break;
+            case "replay_start":
+            case "replaystart":
+            case "replay_end":
+            case "replayend":
+                if (DialogueManager.Instance != null)
+                {
+                    DialogueManager.Instance.AdvanceDialogue();
+                }
+                break;
 
             // Variable actions
             case "set":
@@ -101,6 +110,9 @@ public class ActionExecutor : MonoBehaviour
                 break;
             case "hidecharacter":
                 StartCoroutine(ExecuteHideCharacter(action));
+                break;
+            case "breathe":
+                ExecuteBreathe(action);
                 break;
             case "movecharacter":
                 // If the 4th parameter is "wait", start the blocking coroutine
@@ -697,6 +709,62 @@ public class ActionExecutor : MonoBehaviour
         {
             DialogueManager.Instance.LoadScriptFromFile(currentLanguage, nextScriptName);
             StopAllActions();
+            DialogueManager.Instance.AdvanceDialogue();
+        }
+    }
+
+    private void ExecuteBreathe(ActionNode action)
+    {
+        string characterName = action.parameters.GetValueOrDefault("param1", "");
+        if (string.IsNullOrEmpty(characterName))
+        {
+            Debug.LogError("[ActionExecutor] breathe command has no target character name.");
+            return;
+        }
+
+        if (characterManager == null) return;
+
+        CharacterController character = characterManager.GetCharacter(characterName);
+        if (character == null)
+        {
+            Debug.LogWarning($"[ActionExecutor] breathe target character '{characterName}' is not active or found.");
+            return;
+        }
+
+        // Parse and apply speed override
+        if (action.parameters.TryGetValue("speed", out string speedStr))
+        {
+            if (float.TryParse(speedStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float speed))
+            {
+                character.breatheSpeed = speed;
+            }
+        }
+
+        // Parse and apply intensity override
+        if (action.parameters.TryGetValue("intensity", out string intensityStr))
+        {
+            if (float.TryParse(intensityStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float intensity))
+            {
+                character.breatheIntensityY = intensity;
+                character.breatheIntensityX = intensity * 0.33f;
+            }
+        }
+
+        // Parse and apply enable/disable flag
+        if (action.parameters.TryGetValue("enable", out string enableStr))
+        {
+            if (bool.TryParse(enableStr, out bool enable))
+            {
+                character.isBreathing = enable;
+                if (!enable)
+                {
+                    character.RestoreBaseScale();
+                }
+            }
+        }
+
+        if (DialogueManager.Instance != null)
+        {
             DialogueManager.Instance.AdvanceDialogue();
         }
     }

@@ -109,6 +109,14 @@ All engine commands start with the `@` symbol, followed by parameters.
   ```vnscript
   @setExpression Alice happy
   ```
+- **`@breathe character [speed:value] [intensity:value] [enable:true/false]`**: Customize or toggle a character's idle breathing animation dynamically (default speed: `1.5`, intensity: `0.015`).
+  - `speed` (Optional): breathing frequency (oscillations per second)
+  - `intensity` (Optional): breathing expansion/contraction strength
+  - `enable` (Optional): set to `false` to disable breathing entirely (default: `true`)
+  ```vnscript
+  @breathe Alice speed:2.0 intensity:0.03
+  @breathe Nikita enable:false
+  ```
 - **`@setPortrait character portrait [expression]`**: Change a character's active portrait sheet instantly.
   ```vnscript
   @setPortrait Alice aya_blue happy
@@ -179,6 +187,14 @@ All engine commands start with the `@` symbol, followed by parameters.
   ```vnscript
   @trigger spawn cube
   @trigger start_combat elite_guard 50
+  ```
+- **`@replay_start cgId`**: Define the start marker of a replayable visual novel scene, associated with a CG ID.
+  ```vnscript
+  @replay_start gallery_image_showcase
+  ```
+- **`@replay_end`**: Define the end marker of the replayable scene. When reached, the engine automatically terminates replay mode.
+  ```vnscript
+  @replay_end
   ```
 
 ---
