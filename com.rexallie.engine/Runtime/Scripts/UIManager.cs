@@ -330,6 +330,13 @@ public class UIManager : MonoBehaviour
 
         speakerNameText.text = displayName;
 
+        // Hide speaker box panel if there is no speaking character
+        bool hasSpeaker = !string.IsNullOrEmpty(line.speakerID) && line.speakerID.ToLower() != "narrator";
+        if (speakerNamePanelRect != null)
+        {
+            speakerNamePanelRect.gameObject.SetActive(hasSpeaker);
+        }
+
         AudioClip voiceBlip = null;
         CharacterData charData = null;
         if (CharacterManager.Instance != null)
