@@ -6,11 +6,23 @@ using System.Collections;
 using UnityEngine.UI;
 using System.Collections.Generic;
 
+[System.Serializable]
+public struct MenuButtonSprites
+{
+    public Button button;
+    public Sprite normalSprite;
+    public Sprite highlightedSprite;
+}
+
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
 
     private InputSystem_Actions _playerInput;
+
+    [Header("Menu Button Custom Styling")]
+    [SerializeField] private float unselectedButtonAlpha = 0.7f;
+    [SerializeField] private List<MenuButtonSprites> menuButtonSpritesList = new List<MenuButtonSprites>();
 
     [Header("UI Content")]
     [Tooltip("Assign the parent GameObject that holds all UI elements here.")]
@@ -1210,17 +1222,38 @@ public class UIManager : MonoBehaviour
             float targetAlpha = 1f;
             float targetScale = 1f;
 
+            // Find custom sprites mapping
+            MenuButtonSprites mapping = menuButtonSpritesList.Find(m => m.button == btn);
+            bool hasCustomSprites = (mapping.button != null && mapping.normalSprite != null && mapping.highlightedSprite != null);
+
             if (anyActive)
             {
                 if (btn == activeBtn)
                 {
                     targetAlpha = 1f;
                     targetScale = 1.05f;
+                    if (hasCustomSprites && btn.image != null)
+                    {
+                        btn.image.sprite = mapping.highlightedSprite;
+                    }
                 }
                 else
                 {
                     targetAlpha = 0.4f;
                     targetScale = 0.85f;
+                    if (hasCustomSprites && btn.image != null)
+                    {
+                        btn.image.sprite = mapping.normalSprite;
+                    }
+                }
+            }
+            else
+            {
+                targetAlpha = unselectedButtonAlpha;
+                targetScale = 1f;
+                if (hasCustomSprites && btn.image != null)
+                {
+                    btn.image.sprite = mapping.normalSprite;
                 }
             }
 
