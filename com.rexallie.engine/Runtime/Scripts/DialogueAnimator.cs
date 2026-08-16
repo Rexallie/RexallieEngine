@@ -15,7 +15,7 @@ public class DialogueAnimator : MonoBehaviour
     [Tooltip("The speed at the end of the line (characters per second).")]
     public float slowSpeed = 15f;
 
-    // NEW: A public property to check if the animation is running.
+    // A public property to check if the animation is running.
     public bool IsAnimating { get; private set; }
     public bool IsWaitingForInlineClick { get; set; }
 
@@ -32,43 +32,38 @@ public class DialogueAnimator : MonoBehaviour
         }
 
         IsWaitingForInlineClick = false;
-        textField.text = text;
 
-        if (instant)
+        // If instant or near-instant text speed, reveal immediately without frame delays
+        if (instant || fastSpeed >= 1000f)
         {
-            // If instant, reveal all characters immediately and stop.
-            textField.maxVisibleCharacters = textField.textInfo.characterCount;
+            List<InlinePause> pauses;
+            string cleanText = ParseInlinePauses(text, out pauses);
+            textField.text = cleanText;
+            textField.maxVisibleCharacters = 99999;
             IsAnimating = false;
         }
         else
         {
-            // Otherwise, start the typewriter coroutine.
             typewriterCoroutine = StartCoroutine(TypewriterEffect(text, voiceBlip));
         }
     }
 
     public void SetTypeSpeed(float speed)
     {
-        if (speed >= 0.99f)
+        if (speed >= 0.98f)
         {
-            fastSpeed = 1500f; // Effectively instant.
-            slowSpeed = 1500f;
+            fastSpeed = 2000f; // Instantly reveals
+            slowSpeed = 2000f;
             return;
-        } else
-        {
-            speed = speed * 150f;
         }
 
-        fastSpeed = speed; // For simplicity, we'll just set the fast speed for now.
-                           // You could have separate sliders or logic if desired.
-                           // slowSpeed could also be adjusted here, perhaps proportionally.
-
-        fastSpeed = Mathf.Max(5f, speed); // Ensure a minimum speed.
-
-        slowSpeed = Mathf.Max(5f, speed / 3f); // Example: slow speed is a third of fast speed, with a minimum.
+        // Map normalized slider (0..1) to characters per second (15..200)
+        float mappedSpeed = Mathf.Lerp(15f, 200f, speed);
+        fastSpeed = mappedSpeed;
+        slowSpeed = Mathf.Max(10f, mappedSpeed * 0.5f);
     }
 
-    // NEW: A public method to instantly finish the animation.
+    // Public method to instantly finish the animation.
     public void FinishAnimation()
     {
         if (typewriterCoroutine != null)
@@ -76,12 +71,10 @@ public class DialogueAnimator : MonoBehaviour
             StopCoroutine(typewriterCoroutine);
         }
 
-        // Instantly reveal all characters.
         textField.maxVisibleCharacters = textField.textInfo.characterCount;
         IsAnimating = false;
     }
 
-    // Add this new public method inside your DialogueAnimator class
     public void Clear()
     {
         if (typewriterCoroutine != null)
@@ -155,7 +148,7 @@ public class DialogueAnimator : MonoBehaviour
 
     private IEnumerator TypewriterEffect(string text, AudioClip voiceBlip)
     {
-        IsAnimating = true; // Signal that we are starting.
+        IsAnimating = true;
         IsWaitingForInlineClick = false;
 
         List<InlinePause> pauses;
@@ -175,49 +168,60 @@ public class DialogueAnimator : MonoBehaviour
         }
 
         int pauseIndex = 0;
+        float accumulatedTime = 0f;
+        int currentCharIndex = 0;
 
-        for (int i = 0; i < totalVisibleCharacters; i++)
+        while (currentCharIndex < totalVisibleCharacters)
         {
-            textField.maxVisibleCharacters = i + 1;
-
-            if (voiceBlip != null && i % 2 == 0)
-            {
-                if (AudioManager.Instance != null && AudioManager.Instance.voiceSource != null)
-                {
-                    AudioManager.Instance.voiceSource.pitch = Random.Range(0.95f, 1.05f);
-                    AudioManager.Instance.voiceSource.PlayOneShot(voiceBlip);
-                }
-            }
-
-            // Check if there is an inline pause to trigger after this character
-            while (pauseIndex < pauses.Count && pauses[pauseIndex].characterIndex == i + 1)
-            {
-                InlinePause pause = pauses[pauseIndex];
-                pauseIndex++;
-
-                if (pause.waitForClick)
-                {
-                    IsWaitingForInlineClick = true;
-                    while (IsWaitingForInlineClick)
-                    {
-                        yield return null;
-                    }
-                }
-                else if (pause.duration > 0f)
-                {
-                    yield return new WaitForSeconds(pause.duration);
-                }
-            }
-
-            float progress = (totalVisibleCharacters > 1) ? (float)i / (totalVisibleCharacters - 1) : 1;
+            float progress = (totalVisibleCharacters > 1) ? (float)currentCharIndex / (totalVisibleCharacters - 1) : 1;
             float easedProgress = progress * progress;
             float currentSpeed = Mathf.Lerp(fastSpeed, slowSpeed, easedProgress);
-
             if (currentSpeed <= 0) currentSpeed = 0.001f;
+            float timePerChar = 1f / currentSpeed;
 
-            yield return new WaitForSeconds(1f / currentSpeed);
+            accumulatedTime += Time.deltaTime;
+
+            while (accumulatedTime >= timePerChar && currentCharIndex < totalVisibleCharacters)
+            {
+                accumulatedTime -= timePerChar;
+                currentCharIndex++;
+                textField.maxVisibleCharacters = currentCharIndex;
+
+                if (voiceBlip != null && currentCharIndex % 2 == 0)
+                {
+                    if (AudioManager.Instance != null && AudioManager.Instance.voiceSource != null)
+                    {
+                        AudioManager.Instance.voiceSource.pitch = Random.Range(0.95f, 1.05f);
+                        AudioManager.Instance.voiceSource.PlayOneShot(voiceBlip);
+                    }
+                }
+
+                // Check for inline pauses
+                while (pauseIndex < pauses.Count && pauses[pauseIndex].characterIndex == currentCharIndex)
+                {
+                    InlinePause pause = pauses[pauseIndex];
+                    pauseIndex++;
+
+                    if (pause.waitForClick)
+                    {
+                        IsWaitingForInlineClick = true;
+                        while (IsWaitingForInlineClick)
+                        {
+                            yield return null;
+                        }
+                    }
+                    else if (pause.duration > 0f)
+                    {
+                        yield return new WaitForSeconds(pause.duration);
+                    }
+                    accumulatedTime = 0f; // Reset accumulator after pause
+                }
+            }
+
+            yield return null;
         }
 
-        IsAnimating = false; // Signal that we are finished.
+        textField.maxVisibleCharacters = totalVisibleCharacters;
+        IsAnimating = false;
     }
 }

@@ -226,8 +226,20 @@ public class UIManager : MonoBehaviour
             preferencesButton.onClick.AddListener(() => ShowPanelWithFocus(preferencesPanel.Show));
         }
 
-        DialogueManager.Instance.LoadScriptFromFile("en", initialScriptName);
+        string currentLanguage = PlayerPrefs.GetString("language", "en");
+        DialogueManager.Instance.LoadScriptFromFile(currentLanguage, initialScriptName);
         DialogueManager.Instance.AdvanceDialogue();
+
+        // Check if we need to open the Load panel on startup
+        if (PlayerPrefs.GetInt("OpenLoadPanelOnStart", 0) == 1)
+        {
+            PlayerPrefs.SetInt("OpenLoadPanelOnStart", 0);
+            PlayerPrefs.Save();
+            if (saveLoadPanel != null)
+            {
+                ShowPanelWithFocus(() => saveLoadPanel.Show(false));
+            }
+        }
     }
 
     void Update()
@@ -322,6 +334,12 @@ public class UIManager : MonoBehaviour
 
     private void DisplayDialogue(DialogueLine line)
     {
+        bool instant = DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping;
+        DisplayDialogue(line, instant);
+    }
+
+    private void DisplayDialogue(DialogueLine line, bool instant)
+    {
         string nameKey = $"character_{line.speakerID.ToLower()}_name";
         string displayName = LocalizationManager.Instance.GetLocalizedValue(nameKey);
 
@@ -357,7 +375,6 @@ public class UIManager : MonoBehaviour
         {
             // --- THIS IS THE KEY CHANGE ---
             // Check if we are skipping and pass that to the ShowText method.
-            bool instant = DialogueManager.Instance.IsSkipping;
             Debug.Log($"[UIManager] Sending text to dialogueAnimator (instant={instant})");
             dialogueAnimator.ShowText(interpolatedText, voiceBlip, instant);
         }
@@ -491,8 +508,21 @@ public class UIManager : MonoBehaviour
 
     private void HandleLanguageChange(TMP_FontAsset newFont)
     {
-        if (speakerNameText != null) speakerNameText.font = newFont;
-        if (dialogueText != null) dialogueText.font = newFont;
+        string currentLang = PlayerPrefs.GetString("language", "en");
+        TMP_FontAsset speakerFont = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetFont("Speaker", currentLang) : newFont;
+        TMP_FontAsset dialogueFont = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetFont("Dialogue", currentLang) : newFont;
+
+        if (speakerNameText != null) speakerNameText.font = speakerFont != null ? speakerFont : newFont;
+        if (dialogueText != null) dialogueText.font = dialogueFont != null ? dialogueFont : newFont;
+
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsDialogueActive())
+        {
+            DialogueLine currentLine = DialogueManager.Instance.GetCurrentDialogueLine();
+            if (currentLine != null)
+            {
+                DisplayDialogue(currentLine, true); // Display instantly on language change
+            }
+        }
     }
 
     public void ClearDialogueBox()
@@ -799,7 +829,7 @@ public class UIManager : MonoBehaviour
                 {
                     if (saveLoadPanel != null)
                     {
-                        ShowPanelWithFocus(() => saveLoadPanel.Show(true));
+                        ShowPanelWithFocus(() => saveLoadPanel.Show(false));
                     }
                 }
             }
@@ -1423,6 +1453,8 @@ public class UIManager : MonoBehaviour
 
     private void ApplyCharacterStyling(CharacterData charData)
     {
+        string currentLang = PlayerPrefs.GetString("language", "en");
+
         if (charData != null)
         {
             // 1. Theme Color (for dialogue text and dialogue box accent)
@@ -1443,30 +1475,36 @@ public class UIManager : MonoBehaviour
                 speakerNameBoxImage.color = charData.characterColor;
             }
 
-            // 2. Custom Font Asset
-            if (charData.customFont != null)
+            // 2. Custom Font Asset per language
+            TMP_FontAsset charFont = charData.GetFontForLanguage(currentLang);
+            if (charFont != null)
             {
-                if (dialogueText != null) dialogueText.font = charData.customFont;
-                if (speakerNameText != null) speakerNameText.font = charData.customFont;
+                if (dialogueText != null) dialogueText.font = charFont;
             }
             else
             {
-                if (dialogueText != null) dialogueText.font = defaultDialogueFont;
-                if (speakerNameText != null) speakerNameText.font = defaultSpeakerFont;
+                TMP_FontAsset defaultDialogue = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetFont("Dialogue", currentLang) : defaultDialogueFont;
+                if (dialogueText != null) dialogueText.font = defaultDialogue != null ? defaultDialogue : defaultDialogueFont;
             }
+
+            // Speaker Name Font (uses global Speaker category font)
+            TMP_FontAsset speakerFont = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetFont("Speaker", currentLang) : defaultSpeakerFont;
+            if (speakerNameText != null) speakerNameText.font = speakerFont != null ? speakerFont : defaultSpeakerFont;
         }
         else
         {
             // Revert back to original/default style settings (for narrator / empty speakers)
+            TMP_FontAsset defaultDialogue = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetFont("Dialogue", currentLang) : defaultDialogueFont;
             if (dialogueText != null)
             {
                 dialogueText.color = defaultDialogueColor;
-                dialogueText.font = defaultDialogueFont;
+                dialogueText.font = defaultDialogue != null ? defaultDialogue : defaultDialogueFont;
             }
+            TMP_FontAsset speakerFont = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetFont("Speaker", currentLang) : defaultSpeakerFont;
             if (speakerNameText != null)
             {
                 speakerNameText.color = defaultSpeakerColor;
-                speakerNameText.font = defaultSpeakerFont;
+                speakerNameText.font = speakerFont != null ? speakerFont : defaultSpeakerFont;
             }
             if (dialogueBoxAccent != null)
             {

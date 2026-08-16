@@ -348,6 +348,13 @@ public class DialogueManager : MonoBehaviour
     {
         string currentLanguage = PlayerPrefs.GetString("language", "en");
         InitializeReplayRegistry(currentLanguage);
+
+        if (IsDialogueActive() && !string.IsNullOrEmpty(currentScriptName))
+        {
+            int index = currentNodeIndex;
+            LoadScriptFromFile(currentLanguage, currentScriptName);
+            currentNodeIndex = index;
+        }
     }
 
     // --- THIS IS THE NEW METHOD ---
@@ -376,6 +383,15 @@ public class DialogueManager : MonoBehaviour
         fileName = System.IO.Path.GetFileNameWithoutExtension(fileName);
         string loadPath = $"Dialogues/{language}/{fileName}";
         TextAsset scriptAsset = Resources.Load<TextAsset>(loadPath);
+
+        // Fallback to "en" if not found in the target language
+        if (scriptAsset == null && language != "en")
+        {
+            Debug.LogWarning($"[DialogueManager] Script not found at '{loadPath}'. Falling back to 'Dialogues/en/{fileName}'.");
+            loadPath = $"Dialogues/en/{fileName}";
+            scriptAsset = Resources.Load<TextAsset>(loadPath);
+        }
+
         if (scriptAsset != null)
         {
             currentScript = parser.ParseScript(scriptAsset.text);
@@ -385,7 +401,7 @@ public class DialogueManager : MonoBehaviour
         }
         else
         {
-            Debug.LogError($"Could not find script asset at: Resources/Dialogues/{language}/{fileName}. Please ensure you have imported the Demo Showcase samples or placed your script in the Resources folder.");
+            Debug.LogError($"Could not find script asset at: Resources/Dialogues/{language}/{fileName} or fallback Resources/Dialogues/en/{fileName}. Please ensure you have imported the Demo Showcase samples or placed your script in the Resources folder.");
         }
     }
 
@@ -566,6 +582,15 @@ public class DialogueManager : MonoBehaviour
 
     public string GetCurrentScriptName() { return currentScriptName; }
     public int GetCurrentNodeIndex() { return Mathf.Max(0, currentNodeIndex - 1); }
+    public DialogueLine GetCurrentDialogueLine()
+    {
+        int index = GetCurrentNodeIndex();
+        if (currentScript != null && index >= 0 && index < currentScript.nodes.Count)
+        {
+            return currentScript.nodes[index] as DialogueLine;
+        }
+        return null;
+    }
     public void RestoreState(string scriptName, int nodeIndex, bool advanceAfterRestore = true)
     {
         isRestoringState = true; // Set the flag before restoring
@@ -589,7 +614,8 @@ public class DialogueManager : MonoBehaviour
         isProcessingNode = false;
         isWaitingOnChoice = false;
 
-        LoadScriptFromFile("en", scriptName);
+        string currentLanguage = PlayerPrefs.GetString("language", "en");
+        LoadScriptFromFile(currentLanguage, scriptName);
         currentNodeIndex = nodeIndex;
 
         if (advanceAfterRestore)

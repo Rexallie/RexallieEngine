@@ -16,8 +16,30 @@ public class CharacterData : ScriptableObject
     [Header("Visual Customization")]
     [Tooltip("The main color theme for this character. Used to tint UI panels, dialogue text, or highlights.")]
     public Color characterColor = Color.white;
-    [Tooltip("A custom font asset to use when this character is speaking. Leave empty to use the default VN font.")]
+    [Tooltip("A custom font asset to use when this character is speaking in English. Leave empty to use the default VN font.")]
     public TMPro.TMP_FontAsset customFont;
+    [Tooltip("A custom font asset to use when this character is speaking in Japanese. Leave empty to use the default VN font.")]
+    public TMPro.TMP_FontAsset fontJapanese;
+    [Tooltip("A custom font asset to use when this character is speaking in Simplified Chinese. Leave empty to use the default VN font.")]
+    public TMPro.TMP_FontAsset fontChinese;
+
+    public TMPro.TMP_FontAsset GetFontForLanguage(string langCode)
+    {
+        switch (langCode)
+        {
+            case "ja":
+                if (fontJapanese != null) return fontJapanese;
+                break;
+            case "zh":
+                if (fontChinese != null) return fontChinese;
+                break;
+            case "en":
+            default:
+                if (customFont != null) return customFont;
+                break;
+        }
+        return null;
+    }
 
     [Header("Base Portraits (Body/Outfit)")]
     public List<Portrait> portraits = new List<Portrait>();

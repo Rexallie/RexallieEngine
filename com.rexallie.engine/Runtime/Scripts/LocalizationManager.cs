@@ -1,13 +1,12 @@
 using UnityEngine;
 using System.Collections.Generic;
-using TMPro; // Add this for TextMesh Pro
-using System; // Add this for Action
+using TMPro;
+using System;
 
-// Helper classes for JSON deserialization (no changes here)
+// Helper classes for JSON deserialization
 [System.Serializable] public class LocalizationData { public LocalizationItem[] items; }
 [System.Serializable] public class LocalizationItem { public string key; public string value; }
 
-// NEW: A class to link a language code to a font asset in the Inspector.
 [System.Serializable]
 public class LanguageFontMapping
 {
@@ -15,13 +14,23 @@ public class LanguageFontMapping
     public TMP_FontAsset fontAsset;
 }
 
+[System.Serializable]
+public class FontCategoryMapping
+{
+    public string categoryName; // "Button", "Speaker", "Dialogue", "Common"
+    public List<LanguageFontMapping> fonts = new List<LanguageFontMapping>();
+}
+
 public class LocalizationManager : MonoBehaviour
 {
     public static LocalizationManager Instance { get; private set; }
 
     [Header("Language Settings")]
-    [Tooltip("Links language codes (e.g., 'en', 'ja') to specific font assets.")]
-    public List<LanguageFontMapping> languageFonts;
+    [Tooltip("Default font mapping per language (General / Fallback).")]
+    public List<LanguageFontMapping> languageFonts = new List<LanguageFontMapping>();
+
+    [Tooltip("Categorized font mappings per language (e.g., 'Button', 'Speaker', 'Dialogue').")]
+    public List<FontCategoryMapping> fontCategories = new List<FontCategoryMapping>();
 
     // This event will notify all UI elements when the language (and font) changes.
     public event Action<TMP_FontAsset> OnLanguageChanged;
@@ -54,9 +63,12 @@ public class LocalizationManager : MonoBehaviour
         {
             LocalizationData loadedData = JsonUtility.FromJson<LocalizationData>(targetFile.text);
             localizedText = new Dictionary<string, string>();
-            foreach (var item in loadedData.items)
+            if (loadedData != null && loadedData.items != null)
             {
-                localizedText.Add(item.key, item.value);
+                foreach (var item in loadedData.items)
+                {
+                    localizedText[item.key] = item.value;
+                }
             }
             PlayerPrefs.SetString("language", langCode);
             Debug.Log($"Successfully loaded localization for language: {langCode}");
@@ -68,23 +80,51 @@ public class LocalizationManager : MonoBehaviour
             return;
         }
 
-        // 2. Find the correct font for the new language.
-        TMP_FontAsset newFont = languageFonts.Find(f => f.languageCode == langCode)?.fontAsset;
-        if (newFont == null)
-        {
-            // Fallback to the default language font if the specific one isn't found.
-            newFont = languageFonts.Find(f => f.languageCode == defaultLanguage)?.fontAsset;
-        }
+        // 2. Find the correct font for the new language (Dialogue category or general fallback).
+        TMP_FontAsset newFont = GetFont("Dialogue", langCode);
 
         // 3. Fire the event to tell all UI elements to update their font and text.
-        if (newFont != null)
+        OnLanguageChanged?.Invoke(newFont);
+    }
+
+    public TMP_FontAsset GetFont(string category = "Dialogue", string langCode = null)
+    {
+        if (string.IsNullOrEmpty(langCode))
         {
-            OnLanguageChanged?.Invoke(newFont);
+            langCode = PlayerPrefs.GetString("language", defaultLanguage);
         }
-        else
+
+        // 1. Check specific category
+        if (fontCategories != null && !string.IsNullOrEmpty(category))
         {
-            Debug.LogError($"No font asset found for language '{langCode}' or for the default language.");
+            var cat = fontCategories.Find(c => string.Equals(c.categoryName, category, StringComparison.OrdinalIgnoreCase));
+            if (cat != null && cat.fonts != null)
+            {
+                var mapping = cat.fonts.Find(f => f.languageCode == langCode);
+                if (mapping != null && mapping.fontAsset != null) return mapping.fontAsset;
+
+                // Fallback to defaultLanguage in this category
+                mapping = cat.fonts.Find(f => f.languageCode == defaultLanguage);
+                if (mapping != null && mapping.fontAsset != null) return mapping.fontAsset;
+            }
         }
+
+        // 2. Fallback to general languageFonts list
+        if (languageFonts != null)
+        {
+            var generalMapping = languageFonts.Find(f => f.languageCode == langCode);
+            if (generalMapping != null && generalMapping.fontAsset != null) return generalMapping.fontAsset;
+
+            generalMapping = languageFonts.Find(f => f.languageCode == defaultLanguage);
+            if (generalMapping != null && generalMapping.fontAsset != null) return generalMapping.fontAsset;
+
+            if (languageFonts.Count > 0 && languageFonts[0].fontAsset != null)
+            {
+                return languageFonts[0].fontAsset;
+            }
+        }
+
+        return null;
     }
 
     public string GetLocalizedValue(string key)
