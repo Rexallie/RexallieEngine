@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Audio; // Required for AudioMixer
 
 public class SettingsManager : MonoBehaviour

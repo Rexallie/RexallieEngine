@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
@@ -84,13 +84,21 @@ public class PreferencesPanel : MonoBehaviour
             }
         }
         resolutionDropdown.AddOptions(resOptions);
-        // Try to select current resolution, fallback to last (usually native)
         if (SettingsManager.Instance.currentSettings.resolutionIndex == -1)
             SettingsManager.Instance.currentSettings.resolutionIndex = currentResIndex != -1 ? currentResIndex : availableResolutions.Count - 1;
 
         // Languages
         languageDropdown.ClearOptions();
-        languageDropdown.AddOptions(new List<string> { "English", "日本語", "中文" }); // Display names
+        languageDropdown.AddOptions(new List<string> { "English", "日本語", "中文" });
+
+        // Ensure language dropdown uses a font that supports Japanese and Chinese glyphs
+        TMP_FontAsset cjkFont = Resources.Load<TMP_FontAsset>("Fonts/Japanese/Kosugi-Regular SDF") 
+                             ?? Resources.Load<TMP_FontAsset>("Fonts/Chinese/ChineseBasic SDF");
+        if (cjkFont != null)
+        {
+            if (languageDropdown.captionText != null) languageDropdown.captionText.font = cjkFont;
+            if (languageDropdown.itemText != null) languageDropdown.itemText.font = cjkFont;
+        }
     }
 
     private void SetupListeners()
@@ -120,7 +128,11 @@ public class PreferencesPanel : MonoBehaviour
         SettingsData settings = SettingsManager.Instance.currentSettings;
 
         displayModeDropdown.SetValueWithoutNotify(settings.displayMode);
+        displayModeDropdown.RefreshShownValue();
+
         resolutionDropdown.SetValueWithoutNotify(settings.resolutionIndex);
+        resolutionDropdown.RefreshShownValue();
+
         vsyncToggle.SetIsOnWithoutNotify(settings.vsyncEnabled);
 
         // Set language dropdown based on code
@@ -128,6 +140,7 @@ public class PreferencesPanel : MonoBehaviour
         if (settings.languageCode == "ja") langIndex = 1;
         else if (settings.languageCode == "zh") langIndex = 2;
         languageDropdown.SetValueWithoutNotify(langIndex);
+        languageDropdown.RefreshShownValue();
 
         masterVolumeSlider.SetValueWithoutNotify(settings.masterVolume);
         musicVolumeSlider.SetValueWithoutNotify(settings.musicVolume);
@@ -234,16 +247,23 @@ public class PreferencesPanel : MonoBehaviour
         {
             if (txt == null) continue;
 
+            string objName = txt.gameObject.name.ToLower();
+            // Skip dropdown template labels and caption texts so their fonts & options are not corrupted
+            if (objName.Contains("item label") || (objName.Contains("label") && txt.transform.parent != null && txt.transform.parent.GetComponent<TMP_Dropdown>() != null))
+            {
+                continue;
+            }
+
             LocalizedText loc = txt.GetComponent<LocalizedText>();
             if (loc == null)
             {
                 loc = txt.gameObject.AddComponent<LocalizedText>();
             }
+            loc.fontCategory = "Button";
 
             if (string.IsNullOrEmpty(loc.localizationKey))
             {
                 string textVal = txt.text.Trim().ToLower();
-                string objName = txt.gameObject.name.ToLower();
 
                 if (objName.Contains("mastervolume") || textVal.Contains("master volume"))
                     loc.localizationKey = "ui_master_volume";
@@ -287,21 +307,33 @@ public class PreferencesPanel : MonoBehaviour
 
     private void UpdateDropdownTranslations()
     {
-        if (displayModeDropdown == null) return;
+        if (displayModeDropdown != null)
+        {
+            int currentVal = displayModeDropdown.value;
+            displayModeDropdown.ClearOptions();
 
-        int currentVal = displayModeDropdown.value;
-        displayModeDropdown.ClearOptions();
+            string fullscreen = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetLocalizedValue("ui_fullscreen") : "Fullscreen";
+            string borderless = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetLocalizedValue("ui_borderless") : "Borderless";
+            string windowed = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetLocalizedValue("ui_windowed") : "Windowed";
 
-        string fullscreen = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetLocalizedValue("ui_fullscreen") : "Fullscreen";
-        string borderless = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetLocalizedValue("ui_borderless") : "Borderless";
-        string windowed = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetLocalizedValue("ui_windowed") : "Windowed";
+            if (string.IsNullOrEmpty(fullscreen) || fullscreen == "ui_fullscreen") fullscreen = "Fullscreen";
+            if (string.IsNullOrEmpty(borderless) || borderless == "ui_borderless") borderless = "Borderless";
+            if (string.IsNullOrEmpty(windowed) || windowed == "ui_windowed") windowed = "Windowed";
 
-        if (string.IsNullOrEmpty(fullscreen) || fullscreen == "ui_fullscreen") fullscreen = "Fullscreen";
-        if (string.IsNullOrEmpty(borderless) || borderless == "ui_borderless") borderless = "Borderless";
-        if (string.IsNullOrEmpty(windowed) || windowed == "ui_windowed") windowed = "Windowed";
+            displayModeDropdown.AddOptions(new List<string> { fullscreen, borderless, windowed });
+            displayModeDropdown.SetValueWithoutNotify(currentVal);
+            displayModeDropdown.RefreshShownValue();
+        }
 
-        displayModeDropdown.AddOptions(new List<string> { fullscreen, borderless, windowed });
-        displayModeDropdown.SetValueWithoutNotify(currentVal);
+        if (languageDropdown != null)
+        {
+            languageDropdown.RefreshShownValue();
+        }
+
+        if (resolutionDropdown != null)
+        {
+            resolutionDropdown.RefreshShownValue();
+        }
     }
 
     // --- Public Show/Hide ---
