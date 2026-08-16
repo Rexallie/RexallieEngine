@@ -28,6 +28,24 @@ public class HistoryPanel : MonoBehaviour
         canvasGroup.interactable = false;
         canvasGroup.blocksRaycasts = false;
         transform.localScale = Vector3.one * startScale;
+
+        if (LocalizationManager.Instance != null)
+        {
+            LocalizationManager.Instance.OnLanguageChanged += OnSystemLanguageChanged;
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (LocalizationManager.Instance != null)
+        {
+            LocalizationManager.Instance.OnLanguageChanged -= OnSystemLanguageChanged;
+        }
+    }
+
+    private void OnSystemLanguageChanged(TMP_FontAsset defaultFont)
+    {
+        AutoLocalizePanel();
     }
 
     void Start()
@@ -36,6 +54,7 @@ public class HistoryPanel : MonoBehaviour
         {
             closeButton.onClick.AddListener(Hide);
         }
+        AutoLocalizePanel();
     }
 
     public void Show()
@@ -180,6 +199,42 @@ public class HistoryPanel : MonoBehaviour
             Vector2 pos = contentArea.anchoredPosition;
             pos.y = bottomBoundary - viewportHeight;
             contentArea.anchoredPosition = pos;
+        }
+    }
+
+    private void AutoLocalizePanel()
+    {
+        TextMeshProUGUI[] texts = GetComponentsInChildren<TextMeshProUGUI>(true);
+        foreach (var txt in texts)
+        {
+            if (txt == null) continue;
+
+            LocalizedText loc = txt.GetComponent<LocalizedText>();
+            if (loc == null)
+            {
+                loc = txt.gameObject.AddComponent<LocalizedText>();
+            }
+
+            if (string.IsNullOrEmpty(loc.localizationKey))
+            {
+                string textVal = txt.text.Trim().ToLower();
+                string objName = txt.gameObject.name.ToLower();
+
+                if (textVal.Equals("history") || objName.Contains("title"))
+                {
+                    loc.localizationKey = "ui_history";
+                }
+                else if (textVal.Contains("close") || objName.Contains("close"))
+                {
+                    loc.localizationKey = "ui_close";
+                }
+                else if (textVal.Contains("back") || objName.Contains("back"))
+                {
+                    loc.localizationKey = "ui_back";
+                }
+            }
+
+            loc.UpdateTextAndFont();
         }
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -18,6 +19,9 @@ public class SaveLoadPanel : MonoBehaviour
     [SerializeField] private TMP_InputField nameInputField;
     [SerializeField] private Button confirmRenameButton;
     [SerializeField] private Button cancelRenameButton;
+
+    [Header("Title References")]
+    [SerializeField] private TextMeshProUGUI panelTitleText;
 
     [Header("Animation Settings")]
     [SerializeField] private float animationDuration = 0.3f;
@@ -40,6 +44,25 @@ public class SaveLoadPanel : MonoBehaviour
         canvasGroup.blocksRaycasts = false;
         transform.localScale = Vector3.one * startScale;
         scrollRect = GetComponentInChildren<ScrollRect>();
+
+        if (LocalizationManager.Instance != null)
+        {
+            LocalizationManager.Instance.OnLanguageChanged += OnSystemLanguageChanged;
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (LocalizationManager.Instance != null)
+        {
+            LocalizationManager.Instance.OnLanguageChanged -= OnSystemLanguageChanged;
+        }
+    }
+
+    private void OnSystemLanguageChanged(TMP_FontAsset defaultFont)
+    {
+        AutoLocalizePanel();
+        UpdateTitleText();
     }
 
     void Start()
@@ -50,6 +73,8 @@ public class SaveLoadPanel : MonoBehaviour
         confirmRenameButton.onClick.AddListener(OnConfirmRename);
         cancelRenameButton.onClick.AddListener(HideRenamePrompt);
         renamePanel.SetActive(false);
+
+        AutoLocalizePanel();
     }
 
     public void Show(bool isSaving)
@@ -117,10 +142,20 @@ public class SaveLoadPanel : MonoBehaviour
 
     private void OnConfirmRename()
     {
+        string savePrefix = "Save";
+        if (LocalizationManager.Instance != null)
+        {
+            string locSave = LocalizationManager.Instance.GetLocalizedValue("ui_save");
+            if (!string.IsNullOrEmpty(locSave) && locSave != "ui_save")
+            {
+                savePrefix = locSave;
+            }
+        }
+
         string newName = nameInputField.text;
         if (string.IsNullOrWhiteSpace(newName))
         {
-            newName = "Save " + (currentSlotToSave + 1);
+            newName = savePrefix + " " + (currentSlotToSave + 1);
         }
 
         SaveManager.Instance.SaveGame(currentSlotToSave, newName, () =>
@@ -147,6 +182,7 @@ public class SaveLoadPanel : MonoBehaviour
     private IEnumerator ShowPanelCoroutine(bool isSaving)
     {
         isSaveMode = isSaving;
+        UpdateTitleText();
         PopulateSlots();
 
         float elapsed = 0f;
@@ -254,6 +290,73 @@ public class SaveLoadPanel : MonoBehaviour
             Vector2 pos = contentArea.anchoredPosition;
             pos.y = bottomBoundary - viewportHeight;
             contentArea.anchoredPosition = pos;
+        }
+    }
+
+    private void UpdateTitleText()
+    {
+        if (panelTitleText == null)
+        {
+            panelTitleText = GetComponentsInChildren<TextMeshProUGUI>(true)
+                .FirstOrDefault(t => t.gameObject.name.ToLower().Contains("title"));
+        }
+
+        if (panelTitleText != null && LocalizationManager.Instance != null)
+        {
+            string titleKey = isSaveMode ? "ui_save_game" : "ui_load_game";
+            string titleText = LocalizationManager.Instance.GetLocalizedValue(titleKey);
+            if (!string.IsNullOrEmpty(titleText) && titleText != titleKey)
+            {
+                panelTitleText.text = titleText;
+            }
+            else
+            {
+                panelTitleText.text = isSaveMode ? "Save Game" : "Load Game";
+            }
+        }
+    }
+
+    private void AutoLocalizePanel()
+    {
+        TextMeshProUGUI[] texts = GetComponentsInChildren<TextMeshProUGUI>(true);
+        foreach (var txt in texts)
+        {
+            if (txt == null) continue;
+
+            LocalizedText loc = txt.GetComponent<LocalizedText>();
+            if (loc == null)
+            {
+                loc = txt.gameObject.AddComponent<LocalizedText>();
+            }
+
+            if (string.IsNullOrEmpty(loc.localizationKey))
+            {
+                string textVal = txt.text.Trim().ToLower();
+                string objName = txt.gameObject.name.ToLower();
+
+                if (textVal.Contains("close") || objName.Contains("close"))
+                {
+                    loc.localizationKey = "ui_close";
+                }
+                else if (textVal.Contains("confirm") || objName.Contains("confirm"))
+                {
+                    loc.localizationKey = "ui_confirm";
+                }
+                else if (textVal.Contains("cancel") || objName.Contains("cancel"))
+                {
+                    loc.localizationKey = "ui_cancel";
+                }
+                else if (textVal.Contains("rename") || objName.Contains("rename"))
+                {
+                    loc.localizationKey = "ui_rename";
+                }
+                else if (textVal.Contains("delete") || objName.Contains("delete"))
+                {
+                    loc.localizationKey = "ui_delete";
+                }
+            }
+
+            loc.UpdateTextAndFont();
         }
     }
 }

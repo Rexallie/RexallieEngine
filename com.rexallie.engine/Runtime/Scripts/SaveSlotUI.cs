@@ -44,7 +44,17 @@ public class SaveSlotUI : MonoBehaviour
         }
         else
         {
-            string emptySlotName = $"Empty Slot {slotNumber + 1}";
+            string emptyPrefix = "Empty Slot";
+            if (LocalizationManager.Instance != null)
+            {
+                string locEmpty = LocalizationManager.Instance.GetLocalizedValue("ui_empty_slot");
+                if (!string.IsNullOrEmpty(locEmpty) && locEmpty != "ui_empty_slot")
+                {
+                    emptyPrefix = locEmpty;
+                }
+            }
+
+            string emptySlotName = $"{emptyPrefix} {slotNumber + 1}";
             slotNameText.text = emptySlotName;
             timestampText.text = "--:--:--";
             playtimeText.text = "00:00:00";

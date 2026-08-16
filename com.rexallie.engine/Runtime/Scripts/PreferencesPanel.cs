@@ -31,6 +31,27 @@ public class PreferencesPanel : MonoBehaviour
 
     private List<Resolution> availableResolutions;
 
+    void Awake()
+    {
+        if (LocalizationManager.Instance != null)
+        {
+            LocalizationManager.Instance.OnLanguageChanged += OnSystemLanguageChanged;
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (LocalizationManager.Instance != null)
+        {
+            LocalizationManager.Instance.OnLanguageChanged -= OnSystemLanguageChanged;
+        }
+    }
+
+    private void OnSystemLanguageChanged(TMP_FontAsset defaultFont)
+    {
+        AutoLocalizePanel();
+    }
+
     void Start()
     {
         panelRoot.SetActive(false); // Start hidden
@@ -39,6 +60,7 @@ public class PreferencesPanel : MonoBehaviour
         PopulateDisplayOptions();
         SetupListeners();
         LoadCurrentSettings();
+        AutoLocalizePanel();
     }
 
     private void PopulateDisplayOptions()
@@ -165,8 +187,6 @@ public class PreferencesPanel : MonoBehaviour
     {
         SettingsManager.Instance.currentSettings.musicVolume = value;
         SettingsManager.Instance.ApplyAudioSettings();
-        // No need to call SaveSettings on every tiny slider change, maybe only on Apply/Close?
-        // For simplicity, we save on every change for now.
         SettingsManager.Instance.SaveSettings();
     }
     private void OnSFXVolumeChanged(float value)
@@ -198,7 +218,6 @@ public class PreferencesPanel : MonoBehaviour
     private void OnSkipModeChanged(bool skipUnreadOnly)
     {
         SettingsManager.Instance.currentSettings.skipUnreadText = skipUnreadOnly;
-        // ApplyGameplaySettings handles applying this implicitly via DialogueManager
         SettingsManager.Instance.SaveSettings();
     }
     private void OnOpacityChanged(float value)
@@ -208,11 +227,89 @@ public class PreferencesPanel : MonoBehaviour
         SettingsManager.Instance.SaveSettings();
     }
 
+    private void AutoLocalizePanel()
+    {
+        TextMeshProUGUI[] texts = GetComponentsInChildren<TextMeshProUGUI>(true);
+        foreach (var txt in texts)
+        {
+            if (txt == null) continue;
+
+            LocalizedText loc = txt.GetComponent<LocalizedText>();
+            if (loc == null)
+            {
+                loc = txt.gameObject.AddComponent<LocalizedText>();
+            }
+
+            if (string.IsNullOrEmpty(loc.localizationKey))
+            {
+                string textVal = txt.text.Trim().ToLower();
+                string objName = txt.gameObject.name.ToLower();
+
+                if (objName.Contains("mastervolume") || textVal.Contains("master volume"))
+                    loc.localizationKey = "ui_master_volume";
+                else if (objName.Contains("musicvolume") || textVal.Contains("music volume"))
+                    loc.localizationKey = "ui_music_volume";
+                else if (objName.Contains("sfxvolume") || objName.Contains("soundvolume") || textVal.Contains("sfx volume") || textVal.Contains("sound volume"))
+                    loc.localizationKey = "ui_sfx_volume";
+                else if (objName.Contains("voicevolume") || textVal.Contains("voice volume"))
+                    loc.localizationKey = "ui_voice_volume";
+                else if (objName.Contains("textspeed") || textVal.Contains("text speed"))
+                    loc.localizationKey = "ui_text_speed";
+                else if (objName.Contains("autodelay") || objName.Contains("autoforward") || textVal.Contains("auto forward") || textVal.Contains("auto delay"))
+                    loc.localizationKey = "ui_auto_forward";
+                else if (objName.Contains("displaymode") || textVal.Contains("display mode"))
+                    loc.localizationKey = "ui_display_mode";
+                else if (objName.Contains("resolution") || textVal.Contains("resolution"))
+                    loc.localizationKey = "ui_resolution";
+                else if (objName.Contains("vsync") || textVal.Contains("v-sync") || textVal.Contains("vsync"))
+                    loc.localizationKey = "ui_vsync";
+                else if (objName.Contains("language") || textVal.Contains("language"))
+                    loc.localizationKey = "ui_language";
+                else if (objName.Contains("skipunread") || textVal.Contains("skip unread"))
+                    loc.localizationKey = "ui_skip_unread";
+                else if (objName.Contains("opacity") || textVal.Contains("opacity"))
+                    loc.localizationKey = "ui_textbox_opacity";
+                else if (objName.Contains("title") && textVal.Contains("preferences"))
+                    loc.localizationKey = "ui_preferences";
+                else if (textVal.Equals("preferences"))
+                    loc.localizationKey = "ui_preferences";
+                else if (textVal.Contains("close") || objName.Contains("close"))
+                    loc.localizationKey = "ui_close";
+                else if (textVal.Contains("back") || objName.Contains("back"))
+                    loc.localizationKey = "ui_back";
+            }
+
+            loc.UpdateTextAndFont();
+        }
+
+        UpdateDropdownTranslations();
+    }
+
+    private void UpdateDropdownTranslations()
+    {
+        if (displayModeDropdown == null) return;
+
+        int currentVal = displayModeDropdown.value;
+        displayModeDropdown.ClearOptions();
+
+        string fullscreen = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetLocalizedValue("ui_fullscreen") : "Fullscreen";
+        string borderless = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetLocalizedValue("ui_borderless") : "Borderless";
+        string windowed = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetLocalizedValue("ui_windowed") : "Windowed";
+
+        if (string.IsNullOrEmpty(fullscreen) || fullscreen == "ui_fullscreen") fullscreen = "Fullscreen";
+        if (string.IsNullOrEmpty(borderless) || borderless == "ui_borderless") borderless = "Borderless";
+        if (string.IsNullOrEmpty(windowed) || windowed == "ui_windowed") windowed = "Windowed";
+
+        displayModeDropdown.AddOptions(new List<string> { fullscreen, borderless, windowed });
+        displayModeDropdown.SetValueWithoutNotify(currentVal);
+    }
+
     // --- Public Show/Hide ---
     public void Show() 
     { 
         panelRoot.SetActive(true); 
         LoadCurrentSettings(); 
+        AutoLocalizePanel();
 
         if (EventSystem.current != null)
         {
