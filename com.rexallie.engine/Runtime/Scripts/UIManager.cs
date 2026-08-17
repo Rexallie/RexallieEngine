@@ -334,7 +334,7 @@ public class UIManager : MonoBehaviour
 
     private void DisplayDialogue(DialogueLine line)
     {
-        bool instant = DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping;
+        bool instant = DialogueManager.Instance != null && (DialogueManager.Instance.IsSkipping || DialogueManager.Instance.IsRestoringState);
         DisplayDialogue(line, instant);
     }
 

@@ -305,6 +305,7 @@ public class DialogueManager : MonoBehaviour
 
     // --- NEW: This flag prevents recording history during a restore operation ---
     private bool isRestoringState = false;
+    public bool IsRestoringState => isRestoringState;
     private Coroutine currentNodeCoroutine;
     void Awake()
     {
@@ -617,6 +618,21 @@ public class DialogueManager : MonoBehaviour
         string currentLanguage = PlayerPrefs.GetString("language", "en");
         LoadScriptFromFile(currentLanguage, scriptName);
         currentNodeIndex = nodeIndex;
+
+        // If we are restoring directly to a ChoiceNode, find the preceding DialogueLine
+        // and trigger its display so the dialogue box is properly populated with the question text.
+        if (currentScript != null && nodeIndex >= 0 && nodeIndex < currentScript.nodes.Count)
+        {
+            DialogueNode targetNode = currentScript.nodes[nodeIndex];
+            if (targetNode is ChoiceNode && nodeIndex > 0)
+            {
+                DialogueNode precedingNode = currentScript.nodes[nodeIndex - 1];
+                if (precedingNode is DialogueLine precedingLine)
+                {
+                    OnDialogueLineDisplayed?.Invoke(precedingLine);
+                }
+            }
+        }
 
         if (advanceAfterRestore)
         {
