@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -30,10 +31,18 @@ public class CharacterController : MonoBehaviour
     [SerializeField] private float highlightFadeDuration = 0.25f;
 
     [Header("Shadow Settings")]
-    [Tooltip("Enable a subtle silhouette drop shadow behind the character portrait.")]
+    [Tooltip("Enable a soft, blurred silhouette shadow around the character portrait.")]
     [SerializeField] private bool enableShadow = true;
-    [SerializeField] private Color shadowColor = new Color(0f, 0f, 0f, 0.3f);
-    [SerializeField] private Vector2 shadowOffset = new Vector2(16f, -12f);
+    [SerializeField] private Color shadowColor = new Color(0f, 0f, 0f, 0.45f);
+    [SerializeField] private Vector2 shadowOffset = Vector2.zero;
+    [Tooltip("Controls how wide/soft the silhouette blur extends around the character.")]
+    [Range(0.25f, 3f)]
+    [SerializeField] private float shadowBlurSpread = 1.1f;
+
+    private const float ShadowPaddingRatio = 0.14f;
+    private const int ShadowTextureSize = 256;
+    private static readonly Dictionary<string, Sprite> cachedShadowSprites = new Dictionary<string, Sprite>();
+    private static Material cachedBlurMaterial;
 
     private CharacterData currentCharacter;
     private string currentPortrait;
@@ -221,14 +230,142 @@ public class CharacterController : MonoBehaviour
         shadowRect.pivot = portraitRect.pivot;
         shadowRect.sizeDelta = portraitRect.sizeDelta;
         shadowRect.anchoredPosition = portraitRect.anchoredPosition + shadowOffset;
-        shadowRect.localScale = portraitRect.localScale;
+        shadowRect.localScale = portraitRect.localScale / (1f - 2f * ShadowPaddingRatio);
         shadowRect.localRotation = portraitRect.localRotation;
 
         shadowImage = shadowObj.GetComponent<Image>();
-        shadowImage.sprite = portraitImage.sprite;
-        shadowImage.preserveAspect = portraitImage.preserveAspect;
-        shadowImage.color = shadowColor;
+        shadowImage.preserveAspect = false;
+        shadowImage.color = Color.clear;
         shadowImage.raycastTarget = false;
+
+        if (portraitImage.sprite != null)
+        {
+            UpdateShadowSprite(portraitImage.sprite);
+        }
+    }
+
+    private void UpdateShadowSprite(Sprite sourceSprite)
+    {
+        if (shadowImage == null) return;
+        if (sourceSprite == null)
+        {
+            shadowImage.sprite = null;
+            shadowImage.color = Color.clear;
+            return;
+        }
+
+        Sprite blurredSprite = GetOrCreateBlurredShadowSprite(sourceSprite);
+        if (blurredSprite != null)
+        {
+            shadowImage.sprite = blurredSprite;
+            shadowImage.color = shadowColor;
+        }
+    }
+
+    private Sprite GetOrCreateBlurredShadowSprite(Sprite sourceSprite)
+    {
+        Vector2 containerSize = portraitImage != null ? portraitImage.rectTransform.rect.size : new Vector2(100f, 100f);
+        if (containerSize.x <= 0.01f || containerSize.y <= 0.01f)
+        {
+            containerSize = portraitImage != null && portraitImage.rectTransform.sizeDelta.sqrMagnitude > 0.01f
+                ? portraitImage.rectTransform.sizeDelta
+                : new Vector2(100f, 100f);
+        }
+
+        string cacheKey = $"{sourceSprite.GetInstanceID()}_{shadowBlurSpread:F2}_{containerSize.x:F1}x{containerSize.y:F1}";
+        if (cachedShadowSprites.TryGetValue(cacheKey, out Sprite cached) && cached != null)
+        {
+            return cached;
+        }
+
+        if (cachedBlurMaterial == null)
+        {
+            Shader blurShader = Resources.Load<Shader>("Shaders/CharacterShadowBlur");
+            if (blurShader == null) blurShader = Shader.Find("Hidden/Rexallie/CharacterShadowBlur");
+            if (blurShader == null)
+            {
+                Debug.LogWarning("[CharacterController] CharacterShadowBlur shader not found; shadow disabled.");
+                return null;
+            }
+            cachedBlurMaterial = new Material(blurShader);
+        }
+
+        Rect texRect = sourceSprite.textureRect;
+        Texture srcTex = sourceSprite.texture;
+        if (srcTex == null || texRect.width <= 0f || texRect.height <= 0f) return null;
+
+        float spriteAspect = texRect.width / texRect.height;
+        float containerAspect = containerSize.x / containerSize.y;
+        float fittedW, fittedH;
+        if (portraitImage != null && !portraitImage.preserveAspect)
+        {
+            fittedW = containerSize.x;
+            fittedH = containerSize.y;
+        }
+        else if (spriteAspect > containerAspect)
+        {
+            fittedW = containerSize.x;
+            fittedH = containerSize.x / spriteAspect;
+        }
+        else
+        {
+            fittedH = containerSize.y;
+            fittedW = containerSize.y * spriteAspect;
+        }
+
+        float innerRatio = 1f - 2f * ShadowPaddingRatio;
+        float normW = (fittedW / containerSize.x) * innerRatio;
+        float normH = (fittedH / containerSize.y) * innerRatio;
+        Vector4 sourceRectVec = new Vector4(0.5f - normW * 0.5f, 0.5f - normH * 0.5f, normW, normH);
+        Vector4 spriteUvVec = new Vector4(
+            texRect.x / srcTex.width,
+            texRect.y / srcTex.height,
+            texRect.width / srcTex.width,
+            texRect.height / srcTex.height
+        );
+
+        cachedBlurMaterial.SetVector("_SourceRect", sourceRectVec);
+        cachedBlurMaterial.SetVector("_SpriteUV", spriteUvVec);
+
+        RenderTexture rtA = RenderTexture.GetTemporary(ShadowTextureSize, ShadowTextureSize, 0, RenderTextureFormat.ARGB32);
+        RenderTexture rtB = RenderTexture.GetTemporary(ShadowTextureSize, ShadowTextureSize, 0, RenderTextureFormat.ARGB32);
+        rtA.filterMode = FilterMode.Bilinear;
+        rtB.filterMode = FilterMode.Bilinear;
+        rtA.wrapMode = TextureWrapMode.Clamp;
+        rtB.wrapMode = TextureWrapMode.Clamp;
+
+        RenderTexture prevActive = RenderTexture.active;
+        Graphics.Blit(srcTex, rtA, cachedBlurMaterial, 0);
+
+        float[] stepMultipliers = { 1.0f, 2.0f, 3.2f };
+        for (int passIdx = 0; passIdx < stepMultipliers.Length; passIdx++)
+        {
+            cachedBlurMaterial.SetFloat("_BlurStep", stepMultipliers[passIdx] * shadowBlurSpread);
+            Graphics.Blit(rtA, rtB, cachedBlurMaterial, 1);
+            Graphics.Blit(rtB, rtA, cachedBlurMaterial, 2);
+        }
+
+        RenderTexture.active = rtA;
+        Texture2D shadowTex = new Texture2D(ShadowTextureSize, ShadowTextureSize, TextureFormat.RGBA32, false);
+        shadowTex.wrapMode = TextureWrapMode.Clamp;
+        shadowTex.filterMode = FilterMode.Bilinear;
+        shadowTex.ReadPixels(new Rect(0, 0, ShadowTextureSize, ShadowTextureSize), 0, 0);
+        shadowTex.Apply(false, true);
+
+        RenderTexture.active = prevActive;
+        RenderTexture.ReleaseTemporary(rtA);
+        RenderTexture.ReleaseTemporary(rtB);
+
+        Sprite result = Sprite.Create(
+            shadowTex,
+            new Rect(0, 0, ShadowTextureSize, ShadowTextureSize),
+            new Vector2(0.5f, 0.5f),
+            100f,
+            0,
+            SpriteMeshType.FullRect
+        );
+        cachedShadowSprites[cacheKey] = result;
+        return result;
     }
 
     private void UpdatePortraitSprite()
@@ -240,7 +377,7 @@ public class CharacterController : MonoBehaviour
             if (useUIMode && portraitImage != null)
             {
                 portraitImage.sprite = newPortrait;
-                if (shadowImage != null) shadowImage.sprite = newPortrait;
+                if (enableShadow) UpdateShadowSprite(newPortrait);
             }
             else if (portraitRenderer != null) portraitRenderer.sprite = newPortrait;
         }

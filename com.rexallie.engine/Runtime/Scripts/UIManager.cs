@@ -562,6 +562,10 @@ public class UIManager : MonoBehaviour
         {
             uiContent.SetActive(isActive);
         }
+        if (bottomGradientImage != null)
+        {
+            bottomGradientImage.gameObject.SetActive(isActive);
+        }
     }
 
     public UISaveData GetState()
@@ -685,25 +689,47 @@ public class UIManager : MonoBehaviour
     {
         if (bottomGradientImage == null)
         {
-            Transform parentTransform = dialogueMasterCanvasGroup != null
-                ? dialogueMasterCanvasGroup.transform
-                : (dialoguePanelRect != null ? dialoguePanelRect.parent : transform);
+            Canvas canvas = null;
+            if (uiContent != null) canvas = uiContent.GetComponentInParent<Canvas>();
+            if (canvas == null && dialoguePanelRect != null) canvas = dialoguePanelRect.GetComponentInParent<Canvas>();
+            if (canvas == null) canvas = GetComponentInParent<Canvas>();
+            if (canvas != null) canvas = canvas.rootCanvas;
+
+            Transform parentTransform = canvas != null ? canvas.transform : transform;
 
             GameObject gradObj = new GameObject("BottomScreenGradient", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             gradObj.transform.SetParent(parentTransform, false);
-            gradObj.transform.SetAsFirstSibling();
+
+            // Place right behind uiContent (or DialogueObjectsHolder) so it sits over characters/background and behind UI
+            Transform uiAnchor = uiContent != null
+                ? uiContent.transform
+                : (dialogueMasterCanvasGroup != null ? dialogueMasterCanvasGroup.transform : null);
+            while (uiAnchor != null && uiAnchor.parent != null && uiAnchor.parent != parentTransform)
+            {
+                uiAnchor = uiAnchor.parent;
+            }
+            if (uiAnchor != null && uiAnchor.parent == parentTransform)
+            {
+                gradObj.transform.SetSiblingIndex(uiAnchor.GetSiblingIndex());
+            }
+            else
+            {
+                gradObj.transform.SetAsFirstSibling();
+            }
 
             RectTransform rect = gradObj.GetComponent<RectTransform>();
             rect.anchorMin = new Vector2(0f, 0f);
             rect.anchorMax = new Vector2(1f, bottomGradientHeightRatio);
+            rect.pivot = new Vector2(0.5f, 0f);
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
+            rect.localScale = Vector3.one;
 
             bottomGradientImage = gradObj.GetComponent<Image>();
             bottomGradientImage.raycastTarget = false;
         }
 
-        const int height = 64;
+        const int height = 128;
         Texture2D tex = new Texture2D(1, height, TextureFormat.RGBA32, false);
         tex.wrapMode = TextureWrapMode.Clamp;
         tex.filterMode = FilterMode.Bilinear;
@@ -716,7 +742,15 @@ public class UIManager : MonoBehaviour
         }
         tex.Apply();
 
-        bottomGradientImage.sprite = Sprite.Create(tex, new Rect(0, 0, 1, height), new Vector2(0.5f, 0.5f));
+        bottomGradientImage.sprite = Sprite.Create(
+            tex,
+            new Rect(0, 0, 1, height),
+            new Vector2(0.5f, 0.5f),
+            100f,
+            0,
+            SpriteMeshType.FullRect
+        );
+        bottomGradientImage.type = Image.Type.Simple;
         bottomGradientImage.color = bottomGradientColor;
     }
 
