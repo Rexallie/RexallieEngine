@@ -1,7 +1,7 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System.IO; // Required for file operations
+using System.IO;
 
 public class SaveSlotUI : MonoBehaviour
 {
@@ -16,7 +16,6 @@ public class SaveSlotUI : MonoBehaviour
     private bool isSaveMode;
     private SaveLoadPanel parentPanel;
 
-    // --- NEW: Store the current name ---
     private string currentSaveName;
 
     public void Configure(int slot, bool isSaving, SaveMetadata metadata, SaveLoadPanel panel)
@@ -24,6 +23,29 @@ public class SaveSlotUI : MonoBehaviour
         slotNumber = slot;
         isSaveMode = isSaving;
         parentPanel = panel;
+
+        string currentLang = PlayerPrefs.GetString("language", "en");
+        TMP_FontAsset buttonFont = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetFont("Button", currentLang) : null;
+        TMP_FontAsset dialogueFont = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetFont("Dialogue", currentLang) : null;
+
+        if (slotButton != null)
+        {
+            var btnText = slotButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (btnText != null)
+            {
+                string selectText = "Select";
+                if (LocalizationManager.Instance != null)
+                {
+                    string locSelect = LocalizationManager.Instance.GetLocalizedValue("ui_select");
+                    if (!string.IsNullOrEmpty(locSelect) && locSelect != "ui_select")
+                    {
+                        selectText = locSelect;
+                    }
+                }
+                btnText.text = selectText;
+                if (buttonFont != null) btnText.font = buttonFont;
+            }
+        }
 
         if (metadata != null && !string.IsNullOrEmpty(metadata.timestamp))
         {
@@ -33,7 +55,6 @@ public class SaveSlotUI : MonoBehaviour
             string displayPlaytime = FormatPlaytime(metadata.totalPlaytime);
             playtimeText.text = !string.IsNullOrEmpty(metadata.activeCharacter) ? $"{displayPlaytime} | {metadata.activeCharacter}" : displayPlaytime;
 
-            // --- NEW: Store the name ---
             currentSaveName = metadata.saveName;
 
             Texture2D screenshot = LoadScreenshot(metadata.screenshotPath);
@@ -59,8 +80,14 @@ public class SaveSlotUI : MonoBehaviour
             timestampText.text = "--:--:--";
             playtimeText.text = "00:00:00";
 
-            // --- NEW: Store the default name ---
             currentSaveName = emptySlotName;
+        }
+
+        if (buttonFont != null && slotNameText != null) slotNameText.font = buttonFont;
+        if (dialogueFont != null)
+        {
+            if (timestampText != null) timestampText.font = dialogueFont;
+            if (playtimeText != null) playtimeText.font = dialogueFont;
         }
 
         slotButton.onClick.RemoveAllListeners();

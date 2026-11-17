@@ -340,8 +340,23 @@ public class UIManager : MonoBehaviour
 
     private void DisplayDialogue(DialogueLine line, bool instant)
     {
+        CharacterData charData = null;
+        if (CharacterManager.Instance != null && !string.IsNullOrEmpty(line.speakerID))
+        {
+            charData = CharacterManager.Instance.GetCharacterData(line.speakerID);
+        }
+
         string nameKey = $"character_{line.speakerID.ToLower()}_name";
-        string displayName = LocalizationManager.Instance.GetLocalizedValue(nameKey);
+        string displayName = LocalizationManager.Instance != null
+            ? LocalizationManager.Instance.GetLocalizedValue(nameKey)
+            : nameKey;
+
+        if (displayName == nameKey)
+        {
+            displayName = (charData != null && !string.IsNullOrEmpty(charData.characterName))
+                ? charData.characterName
+                : line.speakerID;
+        }
 
         // Interpolate variables before display
         string interpolatedText = InterpolateVariables(line.text);
@@ -357,16 +372,7 @@ public class UIManager : MonoBehaviour
             speakerNamePanelRect.gameObject.SetActive(hasSpeaker);
         }
 
-        AudioClip voiceBlip = null;
-        CharacterData charData = null;
-        if (CharacterManager.Instance != null)
-        {
-            charData = CharacterManager.Instance.GetCharacterData(line.speakerID);
-            if (charData != null)
-            {
-                voiceBlip = charData.voiceBlip;
-            }
-        }
+        AudioClip voiceBlip = charData != null ? charData.voiceBlip : null;
 
         // Apply Character Custom Styling (Fonts & Theme Colors)
         ApplyCharacterStyling(charData);

@@ -3,53 +3,250 @@
   "name": "VN Script",
   "scopeName": "source.vnscript",
   "patterns": [
-    {
-      "name": "comment.line.vn-script",
-      "match": "^\\s*//.*$"
-    },
-    {
-      "name": "markup.heading.vn-script",
-      "match": "^\\s*#.*$"
-    },
-    {
-      "name": "keyword.control.action.vn-script",
-      "match": "^\\s*@\\w+"
-    },
-    {
-      "name": "variable.parameter.vn-script",
-      "match": "\\b\\w+:\\S+"
-    },
-    {
-      "name": "entity.name.function.vn-script",
-      "match": "(?<=^\\s*@\\w+\\s+)\\S+(?!:)"
-    },
-    {
-      "include": "#dialogue-line"
-    }
+    { "include": "#comments" },
+    { "include": "#choice-option" },
+    { "include": "#actions" },
+    { "include": "#narrator-line" },
+    { "include": "#dialogue-header" },
+    { "include": "#scene-label" },
+    { "include": "#dialogue-text-line" }
   ],
   "repository": {
-    "dialogue-line": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.vn-script",
+          "match": "^\\s*//.*$"
+        },
+        {
+          "name": "markup.heading.vn-script",
+          "match": "^\\s*#.*$"
+        }
+      ]
+    },
+    "choice-option": {
+      "name": "meta.choice.option.vn-script",
+      "match": "^\\s*(\"[^\"]*\")\\s*(->)\\s*([A-Za-z_]\\w*)\\s*$",
+      "captures": {
+        "1": {
+          "name": "string.quoted.double.choice.vn-script",
+          "patterns": [
+            { "include": "#inline-dialogue-elements" }
+          ]
+        },
+        "2": {
+          "name": "keyword.operator.arrow.vn-script"
+        },
+        "3": {
+          "name": "entity.name.function.label.vn-script"
+        }
+      }
+    },
+    "actions": {
+      "patterns": [
+        {
+          "name": "meta.action.if.vn-script",
+          "match": "^\\s*(@(?i:if))\\b\\s+([A-Za-z_]\\w*)\\s+(==|!=|>=|<=|>|<)\\s+(\\S+)\\s+((?i:jump))\\b\\s+([A-Za-z_]\\w*)\\s*$",
+          "captures": {
+            "1": { "name": "keyword.control.flow.vn-script" },
+            "2": { "name": "variable.other.vn-script" },
+            "3": { "name": "keyword.operator.comparison.vn-script" },
+            "4": {
+              "patterns": [
+                { "include": "#literals" },
+                {
+                  "name": "string.unquoted.value.vn-script",
+                  "match": "\\S+"
+                }
+              ]
+            },
+            "5": { "name": "keyword.control.flow.vn-script" },
+            "6": { "name": "entity.name.function.label.vn-script" }
+          }
+        },
+        {
+          "name": "meta.action.set.vn-script",
+          "match": "^\\s*(@(?i:set))\\b\\s+([A-Za-z_]\\w*)\\s*(\\+=|-=|=)\\s*(.+?)\\s*$",
+          "captures": {
+            "1": { "name": "keyword.control.flow.vn-script" },
+            "2": { "name": "variable.other.vn-script" },
+            "3": { "name": "keyword.operator.assignment.vn-script" },
+            "4": {
+              "patterns": [
+                { "include": "#literals" },
+                {
+                  "name": "string.unquoted.value.vn-script",
+                  "match": "\\S+"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "meta.action.jump.vn-script",
+          "match": "^\\s*(@(?i:jump))\\b(?:\\s+([A-Za-z_]\\w*))?\\s*$",
+          "captures": {
+            "1": { "name": "keyword.control.flow.vn-script" },
+            "2": { "name": "entity.name.function.label.vn-script" }
+          }
+        },
+        {
+          "name": "meta.action.choice.vn-script",
+          "match": "^\\s*(@(?i:choice|endchoice|replay_end|replayend|cleardialogue))\\b\\s*$",
+          "captures": {
+            "1": { "name": "keyword.control.flow.vn-script" }
+          }
+        },
+        {
+          "name": "meta.action.command.vn-script",
+          "begin": "^\\s*(@(?i:showCharacter|hideCharacter|moveCharacter|setExpression|setPortrait|breathe|setBackground|playMusic|stopMusic|playSFX|wait|shake|zoom|fade|fadeOut|fadeIn|showUI|hideUI|unlock_cg|unlockcg|trigger|event|loadScript|load_script|replay_start|replaystart|\\w+))\\b",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.action.vn-script" }
+          },
+          "end": "$",
+          "patterns": [
+            {
+              "name": "meta.parameter.named.vn-script",
+              "match": "\\b([A-Za-z_]\\w*)(:)(\\S+)",
+              "captures": {
+                "1": { "name": "variable.parameter.vn-script" },
+                "2": { "name": "punctuation.separator.key-value.vn-script" },
+                "3": {
+                  "patterns": [
+                    { "include": "#action-keywords" },
+                    { "include": "#literals" },
+                    {
+                      "name": "string.unquoted.parameter.vn-script",
+                      "match": "\\S+"
+                    }
+                  ]
+                }
+              }
+            },
+            { "include": "#action-keywords" },
+            { "include": "#literals" },
+            {
+              "name": "entity.name.function.vn-script",
+              "match": "[A-Za-z_][\\w.-]*"
+            }
+          ]
+        }
+      ]
+    },
+    "action-keywords": {
+      "patterns": [
+        {
+          "name": "constant.language.position.vn-script",
+          "match": "\\b(?i:left|right|center|farleft|farright)\\b"
+        },
+        {
+          "name": "constant.language.modifier.vn-script",
+          "match": "\\b(?i:instant|fade|crossfade|wait|reset|black|white)\\b"
+        }
+      ]
+    },
+    "literals": {
+      "patterns": [
+        {
+          "name": "constant.other.color.vn-script",
+          "match": "#[0-9a-fA-F]{3,8}\\b"
+        },
+        {
+          "name": "constant.language.boolean.vn-script",
+          "match": "\\b(?i:true|false)\\b"
+        },
+        {
+          "name": "constant.numeric.vn-script",
+          "match": "[-+]?\\b\\d+(?:\\.\\d+)?f?\\b"
+        }
+      ]
+    },
+    "narrator-line": {
+      "name": "meta.dialogue.narrator.vn-script",
+      "match": "^\\s*((?i:narrator))\\s*(:)\\s*(.*)$",
+      "captures": {
+        "1": { "name": "constant.language.narrator.vn-script" },
+        "2": { "name": "punctuation.separator.vn-script" },
+        "3": {
+          "name": "string.unquoted.dialogue.vn-script",
+          "patterns": [
+            { "include": "#inline-dialogue-elements" }
+          ]
+        }
+      }
+    },
+    "dialogue-header": {
       "patterns": [
         {
           "name": "meta.dialogue.full.vn-script",
-          "match": "^\\s*(\\w+)\\s*(<[^>]+>)?\\s*(\\[[^\\]]+\\])?\\s*(:)\\s*(.*)$",
+          "match": "^\\s*([A-Za-z_]\\w*)(?=\\s*[<\\[])\\s*(<[^>]+>)?\\s*(\\[[^\\]]+\\])?\\s*(:)\\s*(.*)$",
           "captures": {
-            "1": {
-              "name": "entity.name.character.vn-script"
-            },
-            "2": {
-              "name": "string.quoted.portrait.vn-script"
-            },
-            "3": {
-              "name": "constant.language.expression.vn-script"
-            },
-            "4": {
-              "name": "punctuation.separator.vn-script"
-            },
+            "1": { "name": "entity.name.character.vn-script" },
+            "2": { "name": "string.quoted.portrait.vn-script" },
+            "3": { "name": "constant.language.expression.vn-script" },
+            "4": { "name": "punctuation.separator.vn-script" },
             "5": {
-              "name": "string.unquoted.dialogue.vn-script"
+              "name": "string.unquoted.dialogue.vn-script",
+              "patterns": [
+                { "include": "#inline-dialogue-elements" }
+              ]
             }
           }
+        },
+        {
+          "name": "meta.dialogue.inline.vn-script",
+          "match": "^\\s*([A-Za-z_]\\w*)\\s*(:)\\s*(.+)$",
+          "captures": {
+            "1": { "name": "entity.name.character.vn-script" },
+            "2": { "name": "punctuation.separator.vn-script" },
+            "3": {
+              "name": "string.unquoted.dialogue.vn-script",
+              "patterns": [
+                { "include": "#inline-dialogue-elements" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "scene-label": {
+      "name": "meta.label.vn-script",
+      "match": "^\\s*([A-Za-z_]\\w*)\\s*(:)\\s*$",
+      "captures": {
+        "1": { "name": "entity.name.function.label.vn-script" },
+        "2": { "name": "punctuation.separator.label.vn-script" }
+      }
+    },
+    "dialogue-text-line": {
+      "name": "string.unquoted.dialogue.vn-script",
+      "match": "^\\s*(?!//|#|$)(.+)$",
+      "captures": {
+        "1": {
+          "name": "string.unquoted.dialogue.vn-script",
+          "patterns": [
+            { "include": "#inline-dialogue-elements" }
+          ]
+        }
+      }
+    },
+    "inline-dialogue-elements": {
+      "patterns": [
+        {
+          "name": "keyword.control.inline-pause.vn-script",
+          "match": "\\{(?i:w|p=\\d+(?:\\.\\d+)?)\\}"
+        },
+        {
+          "name": "meta.interpolation.vn-script",
+          "match": "(\\{)([A-Za-z_]\\w*)(\\})",
+          "captures": {
+            "1": { "name": "punctuation.definition.template-expression.begin.vn-script" },
+            "2": { "name": "variable.other.interpolation.vn-script" },
+            "3": { "name": "punctuation.definition.template-expression.end.vn-script" }
+          }
+        },
+        {
+          "name": "entity.name.tag.richtext.vn-script",
+          "match": "</?(?i:b|i|u|s|sub|sup|color|size|cspace|alpha|voffset|rotate|sprite|align|allcaps|smallcaps|font|indent|line-height|line-indent|link|lowercase|uppercase|margin|mark|mspace|nobr|noparse|page|pos|space|style|width)(?:=[^>]*)?>"
         }
       ]
     }

@@ -50,6 +50,12 @@ public class CharacterData : ScriptableObject
     [Header("Audio")]
     public AudioClip voiceBlip; // Optional: text blip sound for this character
 
+    [Header("Transform Defaults")]
+    [Tooltip("Default uniform scale multiplier for this character's portrait.")]
+    public float defaultScale = 1f;
+    [Tooltip("Default anchored position offset (X, Y) applied to this character.")]
+    public Vector2 defaultOffset = Vector2.zero;
+
     [Header("Default Fallbacks")]
     [Tooltip("Default texture to use for outfits if a specific one is not found.")]
     public Sprite defaultOutfit;

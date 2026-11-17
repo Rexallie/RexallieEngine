@@ -59,18 +59,52 @@ public class CharacterController : MonoBehaviour
         {
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
         }
+
+        RectTransform rectTransform = GetComponent<RectTransform>();
+        if (rectTransform != null)
+        {
+            baseAnchoredY = rectTransform.anchoredPosition.y;
+            hasBaseAnchoredY = true;
+        }
     }
 
     private Vector3 baseScale = Vector3.one;
+    private bool hasInitializedBaseScale = false;
+    private float baseAnchoredY = 0f;
+    private bool hasBaseAnchoredY = false;
 
     private void Start()
     {
-        baseScale = transform.localScale;
+        if (!hasInitializedBaseScale)
+        {
+            baseScale = transform.localScale;
+            hasInitializedBaseScale = true;
+        }
 
         if (DialogueManager.Instance != null)
         {
             DialogueManager.Instance.OnDialogueLineDisplayed += UpdateCharacter;
         }
+    }
+
+    public void ApplyDefaultScale(float managerScale)
+    {
+        float charScale = currentCharacter != null ? currentCharacter.defaultScale : 1f;
+        baseScale = Vector3.one * (managerScale * charScale);
+        hasInitializedBaseScale = true;
+        transform.localScale = baseScale;
+    }
+
+    public Vector2 GetDefaultOffset()
+    {
+        return currentCharacter != null ? currentCharacter.defaultOffset : Vector2.zero;
+    }
+
+    public Vector2 GetTargetUIPosition(float slotX)
+    {
+        Vector2 offset = GetDefaultOffset();
+        float y = hasBaseAnchoredY ? baseAnchoredY : 0f;
+        return new Vector2(slotX + offset.x, y + offset.y);
     }
 
     public void RestoreBaseScale()

@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,7 +13,7 @@ public class SaveLoadPanel : MonoBehaviour
     [SerializeField] private RectTransform contentArea;
     [SerializeField] private Button closeButton;
 
-    // --- NEW: References for the Rename Panel ---
+    // References for the Rename / Save Name Panel
     [Header("Rename Panel")]
     [SerializeField] private GameObject renamePanel;
     [SerializeField] private TMP_InputField nameInputField;
@@ -31,7 +31,6 @@ public class SaveLoadPanel : MonoBehaviour
     private CanvasGroup canvasGroup;
     private Coroutine animationCoroutine;
 
-    // --- NEW: To store which slot we are saving to ---
     private int currentSlotToSave;
     private ScrollRect scrollRect;
     private GameObject lastSelectedSlotButton = null;
@@ -63,13 +62,16 @@ public class SaveLoadPanel : MonoBehaviour
     {
         AutoLocalizePanel();
         UpdateTitleText();
+        if (renamePanel != null && renamePanel.activeSelf)
+        {
+            AutoLocalizeRenamePanel();
+        }
     }
 
     void Start()
     {
         closeButton.onClick.AddListener(Hide);
 
-        // --- NEW: Hook up the rename panel buttons ---
         confirmRenameButton.onClick.AddListener(OnConfirmRename);
         cancelRenameButton.onClick.AddListener(HideRenamePrompt);
         renamePanel.SetActive(false);
@@ -89,7 +91,6 @@ public class SaveLoadPanel : MonoBehaviour
         animationCoroutine = StartCoroutine(HidePanelCoroutine());
     }
 
-    // --- NEW: This method will be called to refresh the save slots ---
     public void Refresh()
     {
         PopulateSlots();
@@ -117,6 +118,8 @@ public class SaveLoadPanel : MonoBehaviour
         currentSlotToSave = slotNumber;
         nameInputField.text = currentName;
         renamePanel.SetActive(true);
+
+        AutoLocalizeRenamePanel();
 
         if (EventSystem.current != null)
         {
@@ -313,6 +316,8 @@ public class SaveLoadPanel : MonoBehaviour
             {
                 panelTitleText.text = isSaveMode ? "Save Game" : "Load Game";
             }
+            TMP_FontAsset font = LocalizationManager.Instance.GetFont("Speaker") ?? LocalizationManager.Instance.GetFont("Button");
+            if (font != null) panelTitleText.font = font;
         }
     }
 
@@ -328,6 +333,7 @@ public class SaveLoadPanel : MonoBehaviour
             {
                 loc = txt.gameObject.AddComponent<LocalizedText>();
             }
+            loc.fontCategory = "Button";
 
             if (string.IsNullOrEmpty(loc.localizationKey))
             {
@@ -357,6 +363,87 @@ public class SaveLoadPanel : MonoBehaviour
             }
 
             loc.UpdateTextAndFont();
+        }
+
+        AutoLocalizeRenamePanel();
+    }
+
+    private void AutoLocalizeRenamePanel()
+    {
+        if (renamePanel == null) return;
+
+        string currentLang = PlayerPrefs.GetString("language", "en");
+        TMP_FontAsset btnFont = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetFont("Button", currentLang) : null;
+        TMP_FontAsset speakerFont = LocalizationManager.Instance != null ? LocalizationManager.Instance.GetFont("Speaker", currentLang) : btnFont;
+
+        // Localize Rename Panel Title / Prompt
+        var titleTxt = renamePanel.GetComponentsInChildren<TextMeshProUGUI>(true)
+            .FirstOrDefault(t => t.gameObject.name.ToLower().Contains("prompt") || t.gameObject.name.ToLower().Contains("title") || t.text.ToLower().Contains("save name"));
+        if (titleTxt != null)
+        {
+            string promptText = "Enter Save Name";
+            if (LocalizationManager.Instance != null)
+            {
+                string locVal = LocalizationManager.Instance.GetLocalizedValue("ui_set_save_name");
+                if (!string.IsNullOrEmpty(locVal) && locVal != "ui_set_save_name") promptText = locVal;
+            }
+            titleTxt.text = promptText;
+            if (speakerFont != null) titleTxt.font = speakerFont;
+        }
+
+        // Localize Placeholder
+        if (nameInputField != null && nameInputField.placeholder != null)
+        {
+            var placeholderTxt = nameInputField.placeholder.GetComponent<TextMeshProUGUI>();
+            if (placeholderTxt != null)
+            {
+                string phText = "Enter name...";
+                if (LocalizationManager.Instance != null)
+                {
+                    string locVal = LocalizationManager.Instance.GetLocalizedValue("ui_save_name_placeholder");
+                    if (!string.IsNullOrEmpty(locVal) && locVal != "ui_save_name_placeholder") phText = locVal;
+                }
+                placeholderTxt.text = phText;
+                if (btnFont != null) placeholderTxt.font = btnFont;
+            }
+            if (nameInputField.textComponent != null && btnFont != null)
+            {
+                nameInputField.textComponent.font = btnFont;
+            }
+        }
+
+        // Localize Confirm Button
+        if (confirmRenameButton != null)
+        {
+            var btnText = confirmRenameButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (btnText != null)
+            {
+                string saveText = "Save";
+                if (LocalizationManager.Instance != null)
+                {
+                    string locVal = LocalizationManager.Instance.GetLocalizedValue("ui_save");
+                    if (!string.IsNullOrEmpty(locVal) && locVal != "ui_save") saveText = locVal;
+                }
+                btnText.text = saveText;
+                if (btnFont != null) btnText.font = btnFont;
+            }
+        }
+
+        // Localize Cancel Button
+        if (cancelRenameButton != null)
+        {
+            var btnText = cancelRenameButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (btnText != null)
+            {
+                string cancelText = "Cancel";
+                if (LocalizationManager.Instance != null)
+                {
+                    string locVal = LocalizationManager.Instance.GetLocalizedValue("ui_cancel");
+                    if (!string.IsNullOrEmpty(locVal) && locVal != "ui_cancel") cancelText = locVal;
+                }
+                btnText.text = cancelText;
+                if (btnFont != null) btnText.font = btnFont;
+            }
         }
     }
 }

@@ -82,7 +82,6 @@ public class CharacterManager : MonoBehaviour
 
     public void ShowCharacter(string characterName, string position, string portrait, string expression)
     {
-        CharacterController controller = GetOrCreateController(characterName);
         CharacterData data = GetCharacterData(characterName);
         if (data == null)
         {
@@ -90,7 +89,9 @@ public class CharacterManager : MonoBehaviour
             return;
         }
 
+        CharacterController controller = GetOrCreateController(characterName);
         controller.SetCharacter(data, portrait, expression);
+        controller.ApplyDefaultScale(characterScale);
 
         if (useUIMode)
         {
@@ -120,7 +121,7 @@ public class CharacterManager : MonoBehaviour
             if (useUIMode)
             {
                 float targetX = GetUIPositionX(position);
-                Vector2 targetPos = new Vector2(targetX, controller.GetComponent<RectTransform>().anchoredPosition.y);
+                Vector2 targetPos = controller.GetTargetUIPosition(targetX);
                 controller.StartCoroutine(controller.MoveToUIPositionCoroutine(targetPos, duration));
             }
             else
@@ -138,7 +139,7 @@ public class CharacterManager : MonoBehaviour
             if (useUIMode)
             {
                 float targetX = GetUIPositionX(position);
-                Vector2 targetPosition = new Vector2(targetX, controller.GetComponent<RectTransform>().anchoredPosition.y);
+                Vector2 targetPosition = controller.GetTargetUIPosition(targetX);
                 yield return StartCoroutine(controller.MoveToUIPositionCoroutine(targetPosition, duration));
             }
             else
@@ -155,8 +156,16 @@ public class CharacterManager : MonoBehaviour
         string portrait = action.parameters.GetValueOrDefault("param3", $"{characterID.ToLower()}_base");
         string expression = action.parameters.GetValueOrDefault("param4", "neutral");
 
+        CharacterData data = GetCharacterData(characterID);
+        if (data == null)
+        {
+            Debug.LogError($"Character not found: {characterID}");
+            yield break;
+        }
+
         CharacterController controller = GetOrCreateController(characterID);
-        controller.SetCharacter(GetCharacterData(characterID), portrait, expression);
+        controller.SetCharacter(data, portrait, expression);
+        controller.ApplyDefaultScale(characterScale);
 
         float fadeDuration = float.Parse(action.parameters.GetValueOrDefault("fadeIn", "0"), System.Globalization.CultureInfo.InvariantCulture);
         string slideFromDir = action.parameters.GetValueOrDefault("slideFrom", "");
@@ -172,7 +181,7 @@ public class CharacterManager : MonoBehaviour
             slideDuration = 0f;
         }
 
-        Vector2 finalPos = new Vector2(GetUIPositionX(positionStr), controller.GetComponent<RectTransform>().anchoredPosition.y);
+        Vector2 finalPos = controller.GetTargetUIPosition(GetUIPositionX(positionStr));
         Vector2 startPos = finalPos;
 
         if (!string.IsNullOrEmpty(slideFromDir))
@@ -329,7 +338,7 @@ public class CharacterManager : MonoBehaviour
         if (rectTransform == null) return;
 
         float targetX = GetUIPositionX(position);
-        Vector2 targetPosition = new Vector2(targetX, rectTransform.anchoredPosition.y);
+        Vector2 targetPosition = controller.GetTargetUIPosition(targetX);
 
         if (instant)
         {

@@ -1,0 +1,171 @@
+{
+  "Dialogue Line": {
+    "prefix": ["dlg", "dialogue"],
+    "body": [
+      "${1:Character} <${2:base}> [${3:base}]:",
+      "${4:Dialogue text}"
+    ],
+    "description": "Character dialogue line with portrait and expression overrides"
+  },
+  "Narrator Line": {
+    "prefix": ["narrator", "nar"],
+    "body": [
+      "narrator:",
+      "${1:Narration text}"
+    ],
+    "description": "Narrator line (hides speaker name box)"
+  },
+  "Scene Label": {
+    "prefix": ["label", "lbl"],
+    "body": [
+      "${1:label_name}:",
+      "\t$0"
+    ],
+    "description": "Define a jump label"
+  },
+  "Choice Block": {
+    "prefix": ["@choice", "choice"],
+    "body": [
+      "@choice",
+      "\t\"${1:Option 1}\" -> ${2:label_1}",
+      "\t\"${3:Option 2}\" -> ${4:label_2}",
+      "@endchoice"
+    ],
+    "description": "Present branching player choices"
+  },
+  "Show Character": {
+    "prefix": ["@showCharacter", "showCharacter"],
+    "body": "@showCharacter ${1:Character} ${2|left,center,right,farleft,farright|} ${3:base} ${4:base} fadeIn:${5:0.5} slideFrom:${6|left,right,farleft,farright|}",
+    "description": "Show a character with optional fade and slide effects"
+  },
+  "Hide Character": {
+    "prefix": ["@hideCharacter", "hideCharacter"],
+    "body": "@hideCharacter ${1:Character} fadeOut:${2:0.5} slideTo:${3|left,right,farleft,farright|}",
+    "description": "Hide a character with optional fade and slide effects"
+  },
+  "Move Character": {
+    "prefix": ["@moveCharacter", "moveCharacter"],
+    "body": "@moveCharacter ${1:Character} ${2|left,center,right,farleft,farright|} ${3:0.5} ${4|wait, |}",
+    "description": "Move a character to a new position"
+  },
+  "Set Expression": {
+    "prefix": ["@setExpression", "setExpression"],
+    "body": "@setExpression ${1:Character} ${2:expression}",
+    "description": "Change a character's active expression"
+  },
+  "Set Portrait": {
+    "prefix": ["@setPortrait", "setPortrait"],
+    "body": "@setPortrait ${1:Character} ${2:portrait} ${3:expression}",
+    "description": "Change a character's active portrait sheet and expression"
+  },
+  "Character Breathe": {
+    "prefix": ["@breathe", "breathe"],
+    "body": "@breathe ${1:Character} speed:${2:1.5} intensity:${3:0.015} enable:${4|true,false|}",
+    "description": "Configure or toggle a character's idle breathing animation"
+  },
+  "Set Background": {
+    "prefix": ["@setBackground", "setBackground"],
+    "body": "@setBackground ${1:BackgroundName} ${2|instant,fade,crossfade|}",
+    "description": "Change the scene background"
+  },
+  "Play Music": {
+    "prefix": ["@playMusic", "playMusic"],
+    "body": "@playMusic ${1:TrackName} fadeIn:${2:1.5}",
+    "description": "Play looping background music"
+  },
+  "Stop Music": {
+    "prefix": ["@stopMusic", "stopMusic"],
+    "body": "@stopMusic fadeOut:${1:1.5}",
+    "description": "Stop background music"
+  },
+  "Play SFX": {
+    "prefix": ["@playSFX", "playSFX"],
+    "body": "@playSFX ${1:sfxName}",
+    "description": "Play a one-shot sound effect"
+  },
+  "Set Variable": {
+    "prefix": ["@set", "set"],
+    "body": "@set ${1:variable_name} ${2|=,+=,-=|} ${3:value}",
+    "description": "Set or modify a story variable"
+  },
+  "Conditional Jump": {
+    "prefix": ["@if", "if"],
+    "body": "@if ${1:variable_name} ${2|==,!=,>,<,>=,<=|} ${3:value} jump ${4:target_label}",
+    "description": "Conditionally jump to a label based on a variable"
+  },
+  "Jump to Label": {
+    "prefix": ["@jump", "jump"],
+    "body": "@jump ${1:target_label}",
+    "description": "Jump immediately to a label"
+  },
+  "Load Script": {
+    "prefix": ["@loadScript", "loadScript"],
+    "body": "@loadScript ${1:script_name}",
+    "description": "Load and transition to another .vns script file"
+  },
+  "Camera Zoom": {
+    "prefix": ["@zoom", "zoom"],
+    "body": "@zoom x:${1:0} y:${2:0} percentage:${3:50} time:${4:1.0}",
+    "description": "Zoom the camera to focus on coordinates"
+  },
+  "Camera Zoom Reset": {
+    "prefix": ["@zoomReset", "zoom reset"],
+    "body": "@zoom reset time:${1:1.0}",
+    "description": "Reset the camera zoom to default"
+  },
+  "Screen Shake": {
+    "prefix": ["@shake", "shake"],
+    "body": "@shake ${1:0.5} ${2:15.0}",
+    "description": "Shake the screen for a duration and magnitude"
+  },
+  "Wait": {
+    "prefix": ["@wait", "wait"],
+    "body": "@wait ${1:1.0}",
+    "description": "Pause dialogue execution for a duration in seconds"
+  },
+  "Screen Fade Out": {
+    "prefix": ["@fadeOut", "fadeOut"],
+    "body": "@fadeOut ${1:1.0} ${2|black,white|}",
+    "description": "Fade the entire screen to a solid color"
+  },
+  "Screen Fade In": {
+    "prefix": ["@fadeIn", "fadeIn"],
+    "body": "@fadeIn ${1:1.0}",
+    "description": "Fade the entire screen back in"
+  },
+  "Show UI": {
+    "prefix": ["@showUI", "showUI"],
+    "body": "@showUI time:${1:0.5}",
+    "description": "Fade in the dialogue UI"
+  },
+  "Hide UI": {
+    "prefix": ["@hideUI", "hideUI"],
+    "body": "@hideUI time:${1:0.5}",
+    "description": "Fade out the dialogue UI"
+  },
+  "Clear Dialogue": {
+    "prefix": ["@clearDialogue", "clearDialogue"],
+    "body": "@clearDialogue",
+    "description": "Clear the speaker name and dialogue text boxes"
+  },
+  "Unlock CG": {
+    "prefix": ["@unlock_cg", "unlock_cg"],
+    "body": "@unlock_cg ${1:cg_id}",
+    "description": "Unlock a CG in the persistent gallery"
+  },
+  "Replay Scene Block": {
+    "prefix": ["@replay_start", "replay"],
+    "body": [
+      "@replay_start ${1:cg_id}",
+      "\t$0",
+      "@replay_end"
+    ],
+    "description": "Define a replayable gallery scene block"
+  },
+  "Trigger Custom Event": {
+    "prefix": ["@trigger", "trigger"],
+    "body": "@trigger ${1:event_name} ${2:param1}",
+    "description": "Broadcast a custom VNS trigger event to external scripts"
+  }
+}
+

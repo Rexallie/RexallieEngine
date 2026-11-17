@@ -4,16 +4,30 @@
   },
   "brackets": [
     ["[", "]"],
-    ["<", ">"]
+    ["<", ">"],
+    ["{", "}"]
   ],
   "autoClosingPairs": [
     { "open": "[", "close": "]" },
     { "open": "<", "close": ">" },
-    { "open": "\"", "close": "\"" }
+    { "open": "{", "close": "}" },
+    { "open": "\"", "close": "\"", "notIn": ["string"] }
   ],
   "surroundingPairs": [
     ["[", "]"],
     ["<", ">"],
+    ["{", "}"],
     ["\"", "\""]
-  ]
+  ],
+  "folding": {
+    "offSide": true,
+    "markers": {
+      "start": "^\\s*@(?:choice|replay_start|replaystart)\\b",
+      "end": "^\\s*@(?:endchoice|replay_end|replayend)\\b"
+    }
+  },
+  "indentationRules": {
+    "increaseIndentPattern": "^\\s*(?:@(?:choice|replay_start|replaystart)\\b|[A-Za-z_]\\w*\\s*:\\s*$)",
+    "decreaseIndentPattern": "^\\s*@(?:endchoice|replay_end|replayend)\\b"
+  }
 }

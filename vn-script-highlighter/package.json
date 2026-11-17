@@ -1,24 +1,50 @@
 {
   "name": "vn-script-highlighter",
   "displayName": "Visual Novel Script Highlighter",
-  "description": "Syntax highlighting for Visual Novel script files",
-  "version": "1.0.0",
+  "description": "Syntax highlighting, snippets, diagnostics, outline, hover docs, and navigation for Rexallie Engine Visual Novel script (.vns) files",
+  "version": "1.1.0",
   "publisher": "your-name",
   "engines": {
     "vscode": "^1.60.0"
   },
-  "categories": ["Programming Languages"],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:vn-script"
+  ],
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Linters"
+  ],
   "contributes": {
-    "languages": [{
-      "id": "vn-script",
-      "aliases": ["VN Script", "vnscript"],
-      "extensions": [".vns", ".vnscript", ".vn"],
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "vn-script",
-      "scopeName": "source.vnscript",
-      "path": "./syntaxes/vn-script.tmLanguage.json"
-    }]
+    "languages": [
+      {
+        "id": "vn-script",
+        "aliases": [
+          "VN Script",
+          "vnscript",
+          "Rexallie VN Script"
+        ],
+        "extensions": [
+          ".vns",
+          ".vnscript",
+          ".vn"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "vn-script",
+        "scopeName": "source.vnscript",
+        "path": "./syntaxes/vn-script.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "vn-script",
+        "path": "./snippets/vn-script.snippets.json"
+      }
+    ]
   }
 }
