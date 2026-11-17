@@ -76,6 +76,14 @@ public class UIManager : MonoBehaviour
     [Header("Dialogue UI Opacity")]
     [SerializeField] private CanvasGroup dialogueMasterCanvasGroup; // Parent of DialoguePanel and SpeakerNamePanel
 
+    [Header("Bottom Screen Gradient")]
+    [Tooltip("Adds a subtle dark gradient at the bottom of the screen behind the dialogue box.")]
+    [SerializeField] private bool enableBottomGradient = true;
+    [SerializeField] private Color bottomGradientColor = new Color(0f, 0f, 0f, 0.55f);
+    [Range(0.1f, 0.8f)]
+    [SerializeField] private float bottomGradientHeightRatio = 0.38f;
+    [SerializeField] private Image bottomGradientImage;
+
     [Header("Initial Script Settings")]
     [SerializeField] private string initialScriptName = "ui_test";
 
@@ -149,6 +157,11 @@ public class UIManager : MonoBehaviour
         if (speakerNameBoxImage != null)
         {
             defaultSpeakerBoxColor = speakerNameBoxImage.color;
+        }
+
+        if (enableBottomGradient)
+        {
+            SetupBottomGradient();
         }
 
         Button[] allButtons = new Button[] {
@@ -568,6 +581,12 @@ public class UIManager : MonoBehaviour
     {
         InitializeFadeOverlay();
         dialoguePanelCanvasGroup.alpha = data.dialoguePanelVisible ? 1f : 0f;
+        if (bottomGradientImage != null)
+        {
+            Color c = bottomGradientColor;
+            c.a = data.dialoguePanelVisible ? bottomGradientColor.a : 0f;
+            bottomGradientImage.color = c;
+        }
         speakerNamePanelCanvasGroup.alpha = data.speakerNamePanelVisible ? 1f : 0f;
         quickMenuPanelCanvasGroup.alpha = data.quickMenuPanelVisible ? 1f : 0f;
         
@@ -633,6 +652,13 @@ public class UIManager : MonoBehaviour
             quickMenuPanelCanvasGroup.alpha = Mathf.Lerp(startAlpha, endAlpha, easedProgress);
             quickMenuPanelRect.localScale = Vector3.one * Mathf.Lerp(startScaleButtons, endScaleButtons, easedProgress);
 
+            if (bottomGradientImage != null)
+            {
+                Color gc = bottomGradientColor;
+                gc.a = bottomGradientColor.a * Mathf.Lerp(startAlpha, endAlpha, easedProgress);
+                bottomGradientImage.color = gc;
+            }
+
             yield return null;
         }
 
@@ -646,6 +672,52 @@ public class UIManager : MonoBehaviour
 
         quickMenuPanelCanvasGroup.alpha = endAlpha;
         quickMenuPanelRect.localScale = Vector3.one * endScaleButtons;
+
+        if (bottomGradientImage != null)
+        {
+            Color gc = bottomGradientColor;
+            gc.a = bottomGradientColor.a * endAlpha;
+            bottomGradientImage.color = gc;
+        }
+    }
+
+    private void SetupBottomGradient()
+    {
+        if (bottomGradientImage == null)
+        {
+            Transform parentTransform = dialogueMasterCanvasGroup != null
+                ? dialogueMasterCanvasGroup.transform
+                : (dialoguePanelRect != null ? dialoguePanelRect.parent : transform);
+
+            GameObject gradObj = new GameObject("BottomScreenGradient", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            gradObj.transform.SetParent(parentTransform, false);
+            gradObj.transform.SetAsFirstSibling();
+
+            RectTransform rect = gradObj.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(1f, bottomGradientHeightRatio);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            bottomGradientImage = gradObj.GetComponent<Image>();
+            bottomGradientImage.raycastTarget = false;
+        }
+
+        const int height = 64;
+        Texture2D tex = new Texture2D(1, height, TextureFormat.RGBA32, false);
+        tex.wrapMode = TextureWrapMode.Clamp;
+        tex.filterMode = FilterMode.Bilinear;
+
+        for (int y = 0; y < height; y++)
+        {
+            float t = 1f - (float)y / (height - 1); // 1 at bottom, 0 at top
+            float alpha = t * t; // Smooth quadratic falloff
+            tex.SetPixel(0, y, new Color(1f, 1f, 1f, alpha));
+        }
+        tex.Apply();
+
+        bottomGradientImage.sprite = Sprite.Create(tex, new Rect(0, 0, 1, height), new Vector2(0.5f, 0.5f));
+        bottomGradientImage.color = bottomGradientColor;
     }
 
     private void ShowPanelWithFocus(System.Action showAction)

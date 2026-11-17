@@ -29,10 +29,17 @@ public class CharacterController : MonoBehaviour
     [Tooltip("The duration of the highlight/dim animation in seconds.")]
     [SerializeField] private float highlightFadeDuration = 0.25f;
 
+    [Header("Shadow Settings")]
+    [Tooltip("Enable a subtle silhouette drop shadow behind the character portrait.")]
+    [SerializeField] private bool enableShadow = true;
+    [SerializeField] private Color shadowColor = new Color(0f, 0f, 0f, 0.3f);
+    [SerializeField] private Vector2 shadowOffset = new Vector2(16f, -12f);
+
     private CharacterData currentCharacter;
     private string currentPortrait;
     private string currentExpression;
     private CanvasGroup canvasGroup;
+    private Image shadowImage;
     private bool useUIMode;
     private Coroutine highlightCoroutine;
 
@@ -47,6 +54,10 @@ public class CharacterController : MonoBehaviour
 
         if (useUIMode)
         {
+            if (enableShadow)
+            {
+                CreateShadowImage();
+            }
             expressionImage.transform.SetAsLastSibling();
         }
         else if (portraitRenderer != null && expressionRenderer != null)
@@ -195,13 +206,42 @@ public class CharacterController : MonoBehaviour
         UpdateExpressionSprite();
     }
 
+    private void CreateShadowImage()
+    {
+        if (portraitImage == null || shadowImage != null) return;
+
+        GameObject shadowObj = new GameObject("PortraitShadow", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        shadowObj.transform.SetParent(transform, false);
+        shadowObj.transform.SetAsFirstSibling();
+
+        RectTransform portraitRect = portraitImage.rectTransform;
+        RectTransform shadowRect = shadowObj.GetComponent<RectTransform>();
+        shadowRect.anchorMin = portraitRect.anchorMin;
+        shadowRect.anchorMax = portraitRect.anchorMax;
+        shadowRect.pivot = portraitRect.pivot;
+        shadowRect.sizeDelta = portraitRect.sizeDelta;
+        shadowRect.anchoredPosition = portraitRect.anchoredPosition + shadowOffset;
+        shadowRect.localScale = portraitRect.localScale;
+        shadowRect.localRotation = portraitRect.localRotation;
+
+        shadowImage = shadowObj.GetComponent<Image>();
+        shadowImage.sprite = portraitImage.sprite;
+        shadowImage.preserveAspect = portraitImage.preserveAspect;
+        shadowImage.color = shadowColor;
+        shadowImage.raycastTarget = false;
+    }
+
     private void UpdatePortraitSprite()
     {
         if (currentCharacter == null) return;
         Sprite newPortrait = currentCharacter.GetPortrait(currentPortrait);
         if (newPortrait != null)
         {
-            if (useUIMode && portraitImage != null) portraitImage.sprite = newPortrait;
+            if (useUIMode && portraitImage != null)
+            {
+                portraitImage.sprite = newPortrait;
+                if (shadowImage != null) shadowImage.sprite = newPortrait;
+            }
             else if (portraitRenderer != null) portraitRenderer.sprite = newPortrait;
         }
     }
