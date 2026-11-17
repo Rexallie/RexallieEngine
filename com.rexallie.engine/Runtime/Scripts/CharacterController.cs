@@ -39,7 +39,7 @@ public class CharacterController : MonoBehaviour
     [Range(0.25f, 3f)]
     [SerializeField] private float shadowBlurSpread = 1.1f;
 
-    private const float ShadowPaddingRatio = 0.14f;
+    private const float ShadowPaddingRatio = 0.18f;
     private const int ShadowTextureSize = 256;
     private static readonly Dictionary<string, Sprite> cachedShadowSprites = new Dictionary<string, Sprite>();
     private static Material cachedBlurMaterial;
@@ -337,10 +337,11 @@ public class CharacterController : MonoBehaviour
         RenderTexture prevActive = RenderTexture.active;
         Graphics.Blit(srcTex, rtA, cachedBlurMaterial, 0);
 
-        float[] stepMultipliers = { 1.0f, 2.0f, 3.2f };
+        float effectiveSpread = Mathf.Clamp(shadowBlurSpread, 0.25f, 1.8f);
+        float[] stepMultipliers = { 0.8f, 1.6f, 2.5f };
         for (int passIdx = 0; passIdx < stepMultipliers.Length; passIdx++)
         {
-            cachedBlurMaterial.SetFloat("_BlurStep", stepMultipliers[passIdx] * shadowBlurSpread);
+            cachedBlurMaterial.SetFloat("_BlurStep", stepMultipliers[passIdx] * effectiveSpread);
             Graphics.Blit(rtA, rtB, cachedBlurMaterial, 1);
             Graphics.Blit(rtB, rtA, cachedBlurMaterial, 2);
         }
