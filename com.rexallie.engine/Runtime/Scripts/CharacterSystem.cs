@@ -67,11 +67,13 @@ public class CharacterManager : MonoBehaviour
         foreach (var characterPair in activeCharacters)
         {
             CharacterController controller = characterPair.Value;
+            if (controller == null) continue;
 
             // If this character's ID matches the speaker's ID, highlight them. Otherwise, dim them.
             bool isSpeaking = !string.IsNullOrEmpty(speakerID) && characterPair.Key == speakerID;
 
             controller.SetHighlightState(isSpeaking);
+            controller.SetSortingFront(isSpeaking);
         }
     }
 

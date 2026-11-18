@@ -50,6 +50,7 @@ public class CharacterController : MonoBehaviour
     private CanvasGroup canvasGroup;
     private Image shadowImage;
     private bool useUIMode;
+    private int basePortraitSortingOrder = 0;
     private Coroutine highlightCoroutine;
 
     void Awake()
@@ -71,7 +72,8 @@ public class CharacterController : MonoBehaviour
         }
         else if (portraitRenderer != null && expressionRenderer != null)
         {
-            expressionRenderer.sortingOrder = portraitRenderer.sortingOrder + 1;
+            basePortraitSortingOrder = portraitRenderer.sortingOrder;
+            expressionRenderer.sortingOrder = basePortraitSortingOrder + 1;
         }
 
         canvasGroup = GetComponent<CanvasGroup>();
@@ -155,6 +157,23 @@ public class CharacterController : MonoBehaviour
             StopCoroutine(highlightCoroutine);
         }
         highlightCoroutine = StartCoroutine(AnimateHighlight(isHighlighted));
+    }
+
+    public void SetSortingFront(bool isFront)
+    {
+        if (useUIMode)
+        {
+            if (isFront)
+            {
+                transform.SetAsLastSibling();
+            }
+        }
+        else
+        {
+            int order = isFront ? basePortraitSortingOrder + 10 : basePortraitSortingOrder;
+            if (portraitRenderer != null) portraitRenderer.sortingOrder = order;
+            if (expressionRenderer != null) expressionRenderer.sortingOrder = order + 1;
+        }
     }
 
     private IEnumerator AnimateHighlight(bool isHighlighted)
