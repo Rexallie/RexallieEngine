@@ -431,8 +431,8 @@ public class ActionExecutor : MonoBehaviour
     {
         // @setBackground bg_school_hallway fade [time:2.0] [opacity:0.5]
         string backgroundName = action.parameters.GetValueOrDefault("param1", "");
+        bool hasExplicitTransition = action.parameters.ContainsKey("param2");
         string transition = action.parameters.GetValueOrDefault("param2", "instant");
-        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) transition = "instant";
 
         float? durationOverride = null;
         string durationStr = action.parameters.GetValueOrDefault("time",
@@ -443,6 +443,13 @@ public class ActionExecutor : MonoBehaviour
         {
             durationOverride = parsedDuration;
         }
+
+        if (!hasExplicitTransition && durationOverride.HasValue && durationOverride.Value > 0f)
+        {
+            transition = "crossfade";
+        }
+
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) transition = "instant";
 
         float? opacityOverride = null;
         if (action.parameters.TryGetValue("opacity", out string opacityStr) &&

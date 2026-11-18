@@ -247,11 +247,25 @@ public class UIManager : MonoBehaviour
             PlayerPrefs.Save();
             HideUI(0f);
             FadeOutScreen(0f, Color.black);
+            StartCoroutine(ClearStartupDarkOverlay());
         }
 
         string currentLanguage = PlayerPrefs.GetString("language", "en");
         DialogueManager.Instance.LoadScriptFromFile(currentLanguage, initialScriptName);
         DialogueManager.Instance.AdvanceDialogue();
+    }
+
+    private IEnumerator ClearStartupDarkOverlay()
+    {
+        Coroutine initialFadeRef = screenFadeCoroutine;
+        yield return null;
+        yield return null;
+        // Only auto-clear if the script itself didn't already issue a @fadeOut or @fadeIn
+        if (screenFadeCoroutine == initialFadeRef)
+        {
+            FadeInScreen(0.25f);
+        }
+    }
 
         // Check if we need to open the Load panel on startup
         if (PlayerPrefs.GetInt("OpenLoadPanelOnStart", 0) == 1)
@@ -615,16 +629,18 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    private Coroutine uiVisibilityCoroutine;
+
     public void ShowUI(float duration)
     {
-        StopAllCoroutines();
-        StartCoroutine(AnimateUIVisibility(true, duration));
+        if (uiVisibilityCoroutine != null) StopCoroutine(uiVisibilityCoroutine);
+        uiVisibilityCoroutine = StartCoroutine(AnimateUIVisibility(true, duration));
     }
 
     public void HideUI(float duration)
     {
-        StopAllCoroutines();
-        StartCoroutine(AnimateUIVisibility(false, duration));
+        if (uiVisibilityCoroutine != null) StopCoroutine(uiVisibilityCoroutine);
+        uiVisibilityCoroutine = StartCoroutine(AnimateUIVisibility(false, duration));
     }
 
     private IEnumerator AnimateUIVisibility(bool show, float duration)
