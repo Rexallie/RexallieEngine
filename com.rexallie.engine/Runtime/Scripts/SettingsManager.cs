@@ -118,11 +118,27 @@ public class SettingsManager : MonoBehaviour
 
     public void ApplyAudioSettings()
     {
+        if (masterMixer == null) return;
+
         // Convert linear volume (0-1) to logarithmic dB (-80 to 0) for the mixer
-        masterMixer.SetFloat(masterVolumeParam, Mathf.Log10(Mathf.Max(currentSettings.masterVolume, 0.0001f)) * 20f);
-        masterMixer.SetFloat(musicVolumeParam, Mathf.Log10(Mathf.Max(currentSettings.musicVolume, 0.0001f)) * 20f);
-        masterMixer.SetFloat(sfxVolumeParam, Mathf.Log10(Mathf.Max(currentSettings.sfxVolume, 0.0001f)) * 20f);
-        masterMixer.SetFloat(voiceVolumeParam, Mathf.Log10(Mathf.Max(currentSettings.voiceVolume, 0.0001f)) * 20f);
+        SetMixerVolume(masterVolumeParam, currentSettings.masterVolume);
+        SetMixerVolume(musicVolumeParam, currentSettings.musicVolume);
+        if (!SetMixerVolume(sfxVolumeParam, currentSettings.sfxVolume) && sfxVolumeParam != "SoundVolume")
+        {
+            SetMixerVolume("SoundVolume", currentSettings.sfxVolume);
+        }
+        SetMixerVolume(voiceVolumeParam, currentSettings.voiceVolume);
+    }
+
+    private bool SetMixerVolume(string paramName, float linearVolume)
+    {
+        if (string.IsNullOrEmpty(paramName)) return false;
+        if (masterMixer.GetFloat(paramName, out _))
+        {
+            masterMixer.SetFloat(paramName, Mathf.Log10(Mathf.Max(linearVolume, 0.0001f)) * 20f);
+            return true;
+        }
+        return false;
     }
 
     public void ApplyGameplaySettings()

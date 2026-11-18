@@ -23,6 +23,8 @@ public class BackgroundManager : MonoBehaviour
 
     private string currentBackgroundName;
     private float targetOpacity = 1f;
+    private float currentPerceptualOpacity = 1f;
+    private Image blackBackdrop;
     private Coroutine transitionCoroutine;
     private Coroutine opacityCoroutine;
 
@@ -40,7 +42,50 @@ public class BackgroundManager : MonoBehaviour
         if (backgroundImage != null)
         {
             targetOpacity = backgroundImage.color.a;
+            currentPerceptualOpacity = targetOpacity;
+            EnsureBlackBackdrop();
         }
+    }
+
+    private void EnsureBlackBackdrop()
+    {
+        if (backgroundImage == null || blackBackdrop != null) return;
+
+        Transform parent = backgroundImage.transform.parent;
+        if (parent == null) return;
+
+        Transform existing = parent.Find("BackgroundBlackBackdrop");
+        if (existing != null)
+        {
+            blackBackdrop = existing.GetComponent<Image>();
+            return;
+        }
+
+        GameObject backdropObj = new GameObject("BackgroundBlackBackdrop", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        backdropObj.transform.SetParent(parent, false);
+        backdropObj.transform.SetSiblingIndex(backgroundImage.transform.GetSiblingIndex());
+
+        RectTransform bgRect = backgroundImage.rectTransform;
+        RectTransform bdRect = backdropObj.GetComponent<RectTransform>();
+        bdRect.anchorMin = bgRect.anchorMin;
+        bdRect.anchorMax = bgRect.anchorMax;
+        bdRect.pivot = bgRect.pivot;
+        bdRect.anchoredPosition = bgRect.anchoredPosition;
+        bdRect.sizeDelta = bgRect.sizeDelta;
+        bdRect.localScale = bgRect.localScale;
+        bdRect.localRotation = bgRect.localRotation;
+
+        blackBackdrop = backdropObj.GetComponent<Image>();
+        blackBackdrop.color = Color.black;
+        blackBackdrop.raycastTarget = false;
+    }
+
+    private float ToRenderAlpha(float perceptualOpacity)
+    {
+        float clamped = Mathf.Clamp01(perceptualOpacity);
+        return QualitySettings.activeColorSpace == ColorSpace.Linear
+            ? Mathf.GammaToLinearSpace(clamped)
+            : clamped;
     }
 
     public void SetBackground(string backgroundName, string transition = "instant", float? durationOverride = null, float? opacityOverride = null)
@@ -122,10 +167,11 @@ public class BackgroundManager : MonoBehaviour
 
     private void ApplyOpacityImmediate(float opacity)
     {
+        currentPerceptualOpacity = Mathf.Clamp01(opacity);
         if (backgroundImage != null)
         {
             Color c = backgroundImage.color;
-            c.a = opacity;
+            c.a = ToRenderAlpha(currentPerceptualOpacity);
             backgroundImage.color = c;
         }
     }
@@ -134,21 +180,19 @@ public class BackgroundManager : MonoBehaviour
     {
         if (backgroundImage == null) yield break;
 
-        Color color = backgroundImage.color;
-        float startAlpha = color.a;
+        float startAlpha = currentPerceptualOpacity;
         float elapsed = 0f;
 
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
             float progress = Mathf.Clamp01(elapsed / duration);
-            color.a = Mathf.Lerp(startAlpha, endAlpha, Easing.EaseOutQuad(progress));
-            backgroundImage.color = color;
+            float perceptual = Mathf.Lerp(startAlpha, endAlpha, Mathf.SmoothStep(0f, 1f, progress));
+            ApplyOpacityImmediate(perceptual);
             yield return null;
         }
 
-        color.a = endAlpha;
-        backgroundImage.color = color;
+        ApplyOpacityImmediate(endAlpha);
         opacityCoroutine = null;
     }
 
@@ -160,16 +204,16 @@ public class BackgroundManager : MonoBehaviour
 
         // Fade out current background
         float elapsed = 0f;
-        Color color = backgroundImage.color;
-        float startAlpha = color.a;
+        float startAlpha = currentPerceptualOpacity;
 
         if (halfDuration > 0f)
         {
             while (elapsed < halfDuration)
             {
                 elapsed += Time.deltaTime;
-                color.a = Mathf.Lerp(startAlpha, 0f, Mathf.Clamp01(elapsed / halfDuration));
-                backgroundImage.color = color;
+                float progress = Mathf.Clamp01(elapsed / halfDuration);
+                float perceptual = Mathf.Lerp(startAlpha, 0f, Mathf.SmoothStep(0f, 1f, progress));
+                ApplyOpacityImmediate(perceptual);
                 yield return null;
             }
         }
@@ -185,14 +229,14 @@ public class BackgroundManager : MonoBehaviour
             while (elapsed < halfDuration)
             {
                 elapsed += Time.deltaTime;
-                color.a = Mathf.Lerp(0f, targetOpacity, Mathf.Clamp01(elapsed / halfDuration));
-                backgroundImage.color = color;
+                float progress = Mathf.Clamp01(elapsed / halfDuration);
+                float perceptual = Mathf.Lerp(0f, targetOpacity, Mathf.SmoothStep(0f, 1f, progress));
+                ApplyOpacityImmediate(perceptual);
                 yield return null;
             }
         }
 
-        color.a = targetOpacity;
-        backgroundImage.color = color;
+        ApplyOpacityImmediate(targetOpacity);
         transitionCoroutine = null;
     }
 
@@ -215,7 +259,9 @@ public class BackgroundManager : MonoBehaviour
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
-                color.a = Mathf.Lerp(0f, targetOpacity, Mathf.Clamp01(elapsed / duration));
+                float progress = Mathf.Clamp01(elapsed / duration);
+                float perceptual = Mathf.Lerp(0f, targetOpacity, Mathf.SmoothStep(0f, 1f, progress));
+                color.a = ToRenderAlpha(perceptual);
                 fadeImage.color = color;
                 yield return null;
             }

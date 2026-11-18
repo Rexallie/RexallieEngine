@@ -112,7 +112,11 @@ public class UIButtonSound : MonoBehaviour, IPointerEnterHandler, ISelectHandler
 
         if (SettingsManager.Instance != null && SettingsManager.Instance.masterMixer != null)
         {
-            AudioMixerGroup[] groups = SettingsManager.Instance.masterMixer.FindMatchingGroups("SFX");
+            AudioMixerGroup[] groups = SettingsManager.Instance.masterMixer.FindMatchingGroups("Sound");
+            if (groups == null || groups.Length == 0)
+            {
+                groups = SettingsManager.Instance.masterMixer.FindMatchingGroups("SFX");
+            }
             if (groups != null && groups.Length > 0)
             {
                 fallbackAudioSource.outputAudioMixerGroup = groups[0];
