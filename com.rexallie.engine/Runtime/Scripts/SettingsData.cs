@@ -32,7 +32,7 @@ public class SettingsData
 
         masterVolume = 0.8f;
         musicVolume = 0.7f;
-        sfxVolume = 1.0f;
+        sfxVolume = 0.5f;
         voiceVolume = 1.0f;
 
         textSpeed = 90f;

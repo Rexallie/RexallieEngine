@@ -76,8 +76,8 @@ public class UIButtonSound : MonoBehaviour, IPointerEnterHandler, ISelectHandler
         AudioSource source = GetOrCreateFallbackSource();
         if (source != null)
         {
-            float vol = SettingsManager.Instance != null ? SettingsManager.Instance.currentSettings.sfxVolume : 1f;
-            source.PlayOneShot(clip, vol);
+            float vol = SettingsManager.Instance != null ? SettingsManager.Instance.currentSettings.sfxVolume : 0.5f;
+            source.PlayOneShot(clip, vol * 0.25f);
         }
     }
 

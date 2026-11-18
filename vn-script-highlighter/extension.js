@@ -69,9 +69,19 @@ const COMMAND_DOCS = {
     example: '@breathe Alice speed:2.0 intensity:0.03\n@breathe Nikita enable:false'
   },
   setbackground: {
-    signature: '@setBackground <backgroundName> [instant | fade | crossfade]',
-    description: 'Change the background image using the specified transition (`instant`, `fade`, or `crossfade`).',
-    example: '@setBackground campus fade'
+    signature: '@setBackground <backgroundName> [instant | fade | crossfade] [time:duration] [opacity:0..1]',
+    description: 'Change the background image using the specified transition (`instant`, `fade`, or `crossfade`), with optional transition duration and opacity.',
+    example: '@setBackground campus fade time:2.0 opacity:0.8'
+  },
+  setbackgroundopacity: {
+    signature: '@setBackgroundOpacity <opacity> [time:duration]',
+    description: 'Adjust the background image opacity (`0.0` to `1.0`), optionally fading smoothly over `time` seconds.',
+    example: '@setBackgroundOpacity 0.5 time:1.0'
+  },
+  backgroundopacity: {
+    signature: '@backgroundOpacity <opacity> [time:duration]',
+    description: 'Alias for `@setBackgroundOpacity`. Adjust the background image opacity (`0.0` to `1.0`).',
+    example: '@backgroundOpacity 0.5 time:1.0'
   },
   playmusic: {
     signature: '@playMusic <trackName> [fadeIn:time]',
@@ -177,7 +187,7 @@ const COMMAND_DOCS = {
 
 const CANONICAL_COMMANDS = [
   'showCharacter', 'hideCharacter', 'moveCharacter', 'setExpression', 'setPortrait', 'breathe',
-  'setBackground', 'playMusic', 'stopMusic', 'playSFX',
+  'setBackground', 'setBackgroundOpacity', 'playMusic', 'stopMusic', 'playSFX',
   'jump', 'set', 'if', 'choice', 'endchoice', 'loadScript',
   'wait', 'shake', 'zoom', 'fadeOut', 'fadeIn', 'showUI', 'hideUI', 'clearDialogue',
   'unlock_cg', 'trigger', 'replay_start', 'replay_end'

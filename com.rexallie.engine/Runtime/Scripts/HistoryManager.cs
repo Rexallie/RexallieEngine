@@ -32,6 +32,8 @@ public class HistoryManager : MonoBehaviour
         newState.currentNodeIndex = DialogueManager.Instance.GetCurrentNodeIndex();
         newState.activeCharacters = CharacterManager.Instance.GetCharactersState();
         newState.currentBackgroundName = BackgroundManager.Instance.GetCurrentBackgroundName();
+        newState.currentBackgroundOpacity = BackgroundManager.Instance.GetCurrentBackgroundOpacity();
+        newState.hasBackgroundOpacity = true;
         newState.currentMusicTrackName = AudioManager.Instance.GetCurrentMusicTrack();
         newState.variables = VariableManager.Instance.GetVariableData();
         newState.sceneEffectsState = SceneEffectsManager.Instance.GetState();
@@ -62,7 +64,7 @@ public class HistoryManager : MonoBehaviour
         // Restore everything instantly.
         SceneEffectsManager.Instance.RestoreState(stateToRestore.sceneEffectsState);
         UIManager.Instance.RestoreState(stateToRestore.uiState);
-        BackgroundManager.Instance.RestoreState(stateToRestore.currentBackgroundName);
+        BackgroundManager.Instance.RestoreState(stateToRestore.currentBackgroundName, stateToRestore.hasBackgroundOpacity ? stateToRestore.currentBackgroundOpacity : 1f);
         CharacterManager.Instance.RestoreState(stateToRestore.activeCharacters);
         AudioManager.Instance.RestoreState(stateToRestore.currentMusicTrackName);
         VariableManager.Instance.RestoreVariableData(stateToRestore.variables);
@@ -99,7 +101,7 @@ public class HistoryManager : MonoBehaviour
         // Restore everything instantly
         SceneEffectsManager.Instance.RestoreState(targetState.sceneEffectsState);
         UIManager.Instance.RestoreState(targetState.uiState);
-        BackgroundManager.Instance.RestoreState(targetState.currentBackgroundName);
+        BackgroundManager.Instance.RestoreState(targetState.currentBackgroundName, targetState.hasBackgroundOpacity ? targetState.currentBackgroundOpacity : 1f);
         CharacterManager.Instance.RestoreState(targetState.activeCharacters);
         AudioManager.Instance.RestoreState(targetState.currentMusicTrackName);
         VariableManager.Instance.RestoreVariableData(targetState.variables);

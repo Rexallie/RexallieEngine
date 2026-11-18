@@ -136,6 +136,10 @@ public class ActionExecutor : MonoBehaviour
             case "setbackground":
                 ExecuteSetBackground(action);
                 break;
+            case "setbackgroundopacity":
+            case "backgroundopacity":
+                StartCoroutine(ExecuteSetBackgroundOpacity(action));
+                break;
 
             // Audio actions
             case "playmusic":
@@ -425,7 +429,7 @@ public class ActionExecutor : MonoBehaviour
 
     private void ExecuteSetBackground(ActionNode action)
     {
-        // @setBackground bg_school_hallway fade [time:2.0]
+        // @setBackground bg_school_hallway fade [time:2.0] [opacity:0.5]
         string backgroundName = action.parameters.GetValueOrDefault("param1", "");
         string transition = action.parameters.GetValueOrDefault("param2", "instant");
         if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) transition = "instant";
@@ -440,9 +444,59 @@ public class ActionExecutor : MonoBehaviour
             durationOverride = parsedDuration;
         }
 
+        float? opacityOverride = null;
+        if (action.parameters.TryGetValue("opacity", out string opacityStr) &&
+            float.TryParse(opacityStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float parsedOpacity))
+        {
+            opacityOverride = parsedOpacity;
+        }
+
         if (backgroundManager != null)
         {
-            backgroundManager.SetBackground(backgroundName, transition, durationOverride);
+            backgroundManager.SetBackground(backgroundName, transition, durationOverride, opacityOverride);
+        }
+    }
+
+    private IEnumerator ExecuteSetBackgroundOpacity(ActionNode action)
+    {
+        // @setBackgroundOpacity 0.5 [time:1.0]
+        string opacityStr = action.parameters.GetValueOrDefault("opacity", action.parameters.GetValueOrDefault("param1", "1.0"));
+        if (!float.TryParse(opacityStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float opacity))
+        {
+            opacity = 1f;
+        }
+
+        string durationStr = action.parameters.GetValueOrDefault("time",
+            action.parameters.GetValueOrDefault("duration",
+            action.parameters.GetValueOrDefault("param2", "0")));
+        if (!float.TryParse(durationStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float duration))
+        {
+            duration = 0f;
+        }
+
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping)
+        {
+            duration = 0f;
+        }
+
+        if (backgroundManager != null)
+        {
+            if (duration > 0.001f)
+            {
+                isExecutingAction = true;
+                try
+                {
+                    yield return backgroundManager.StartCoroutine(backgroundManager.SetBackgroundOpacityAndWait(opacity, duration));
+                }
+                finally
+                {
+                    isExecutingAction = false;
+                }
+            }
+            else
+            {
+                backgroundManager.SetBackgroundOpacity(opacity, 0f);
+            }
         }
     }
 

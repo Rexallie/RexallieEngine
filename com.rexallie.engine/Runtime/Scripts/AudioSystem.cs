@@ -33,8 +33,10 @@ public class AudioManager : MonoBehaviour
 
     [Header("Settings")]
     public float musicVolume = 0.7f;
-    public float sfxVolume = 1f;
+    public float sfxVolume = 0.45f;
     public float voiceVolume = 1f;
+    [Range(0f, 1f)] public float sfxOneShotScale = 0.5f;
+    [Range(0f, 1f)] public float uiButtonVolume = 0.25f;
 
     // Add this near the top of the class
     private string currentMusicTrack;
@@ -165,7 +167,7 @@ public class AudioManager : MonoBehaviour
 
         if (sfxSource != null)
         {
-            sfxSource.PlayOneShot(clip);
+            sfxSource.PlayOneShot(clip, sfxOneShotScale);
         }
     }
 
@@ -194,7 +196,7 @@ public class AudioManager : MonoBehaviour
 
         if (clip != null && sfxSource != null)
         {
-            sfxSource.PlayOneShot(clip);
+            sfxSource.PlayOneShot(clip, uiButtonVolume);
         }
     }
 

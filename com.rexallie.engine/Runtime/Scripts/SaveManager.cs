@@ -106,7 +106,11 @@ public class SaveManager : MonoBehaviour
         if (CharacterManager.Instance != null)
             data.activeCharacters = CharacterManager.Instance.GetCharactersState();
         if (BackgroundManager.Instance != null)
+        {
             data.currentBackgroundName = BackgroundManager.Instance.GetCurrentBackgroundName();
+            data.currentBackgroundOpacity = BackgroundManager.Instance.GetCurrentBackgroundOpacity();
+            data.hasBackgroundOpacity = true;
+        }
         if (AudioManager.Instance != null)
             data.currentMusicTrackName = AudioManager.Instance.GetCurrentMusicTrack();
         if (VariableManager.Instance != null)
@@ -126,7 +130,7 @@ public class SaveManager : MonoBehaviour
 
         if (SceneEffectsManager.Instance != null) SceneEffectsManager.Instance.RestoreState(data.sceneEffectsState);
         if (UIManager.Instance != null) UIManager.Instance.RestoreState(data.uiState);
-        if (BackgroundManager.Instance != null) BackgroundManager.Instance.RestoreState(data.currentBackgroundName);
+        if (BackgroundManager.Instance != null) BackgroundManager.Instance.RestoreState(data.currentBackgroundName, data.hasBackgroundOpacity ? data.currentBackgroundOpacity : 1f);
         if (CharacterManager.Instance != null) CharacterManager.Instance.RestoreState(data.activeCharacters);
         if (AudioManager.Instance != null) AudioManager.Instance.RestoreState(data.currentMusicTrackName);
         if (VariableManager.Instance != null) VariableManager.Instance.RestoreVariableData(data.variables);

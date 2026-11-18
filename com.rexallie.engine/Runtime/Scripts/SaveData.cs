@@ -60,6 +60,8 @@ public class HistoryState
     public int currentNodeIndex;
     public List<CharacterSaveData> activeCharacters;
     public string currentBackgroundName;
+    public float currentBackgroundOpacity = 1f;
+    public bool hasBackgroundOpacity;
     public string currentMusicTrackName;
     public List<VariableSaveData> variables;
     public SceneEffectsSaveData sceneEffectsState;
@@ -72,5 +74,6 @@ public class HistoryState
         variables = new List<VariableSaveData>();
         sceneEffectsState = new SceneEffectsSaveData();
         uiState = new UISaveData();
+        currentBackgroundOpacity = 1f;
     }
 }

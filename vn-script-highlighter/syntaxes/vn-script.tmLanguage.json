@@ -99,7 +99,7 @@
         },
         {
           "name": "meta.action.command.vn-script",
-          "begin": "^\\s*(@(?i:showCharacter|hideCharacter|moveCharacter|setExpression|setPortrait|breathe|setBackground|playMusic|stopMusic|playSFX|wait|shake|zoom|fade|fadeOut|fadeIn|showUI|hideUI|unlock_cg|unlockcg|trigger|event|loadScript|load_script|replay_start|replaystart|\\w+))\\b",
+          "begin": "^\\s*(@(?i:showCharacter|hideCharacter|moveCharacter|setExpression|setPortrait|breathe|setBackgroundOpacity|backgroundOpacity|setBackground|playMusic|stopMusic|playSFX|wait|shake|zoom|fade|fadeOut|fadeIn|showUI|hideUI|unlock_cg|unlockcg|trigger|event|loadScript|load_script|replay_start|replaystart|\\w+))\\b",
           "beginCaptures": {
             "1": { "name": "keyword.control.action.vn-script" }
           },
