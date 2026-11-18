@@ -253,6 +253,17 @@ public class UIManager : MonoBehaviour
         string currentLanguage = PlayerPrefs.GetString("language", "en");
         DialogueManager.Instance.LoadScriptFromFile(currentLanguage, initialScriptName);
         DialogueManager.Instance.AdvanceDialogue();
+
+        // Check if we need to open the Load panel on startup
+        if (PlayerPrefs.GetInt("OpenLoadPanelOnStart", 0) == 1)
+        {
+            PlayerPrefs.SetInt("OpenLoadPanelOnStart", 0);
+            PlayerPrefs.Save();
+            if (saveLoadPanel != null)
+            {
+                ShowPanelWithFocus(() => saveLoadPanel.Show(false));
+            }
+        }
     }
 
     private IEnumerator ClearStartupDarkOverlay()
@@ -264,18 +275,6 @@ public class UIManager : MonoBehaviour
         if (screenFadeCoroutine == initialFadeRef)
         {
             FadeInScreen(0.25f);
-        }
-    }
-
-        // Check if we need to open the Load panel on startup
-        if (PlayerPrefs.GetInt("OpenLoadPanelOnStart", 0) == 1)
-        {
-            PlayerPrefs.SetInt("OpenLoadPanelOnStart", 0);
-            PlayerPrefs.Save();
-            if (saveLoadPanel != null)
-            {
-                ShowPanelWithFocus(() => saveLoadPanel.Show(false));
-            }
         }
     }
 
