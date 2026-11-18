@@ -35,7 +35,7 @@ public class BackgroundManager : MonoBehaviour
         }
     }
 
-    public void SetBackground(string backgroundName, string transition = "instant")
+    public void SetBackground(string backgroundName, string transition = "instant", float? durationOverride = null)
     {
         BackgroundData bgData = backgrounds.Find(b => b.backgroundName == backgroundName);
 
@@ -50,10 +50,10 @@ public class BackgroundManager : MonoBehaviour
         switch (transition.ToLower())
         {
             case "fade":
-                StartCoroutine(FadeToBackground(bgData.sprite));
+                StartCoroutine(FadeToBackground(bgData.sprite, durationOverride));
                 break;
             case "crossfade":
-                StartCoroutine(CrossfadeToBackground(bgData.sprite));
+                StartCoroutine(CrossfadeToBackground(bgData.sprite, durationOverride));
                 break;
             case "instant":
             default:
@@ -63,18 +63,25 @@ public class BackgroundManager : MonoBehaviour
         }
     }
 
-    private IEnumerator FadeToBackground(Sprite newBackground)
+    private IEnumerator FadeToBackground(Sprite newBackground, float? durationOverride = null)
     {
+        float halfDuration = durationOverride.HasValue && durationOverride.Value > 0f
+            ? durationOverride.Value * 0.5f
+            : (fadeSpeed > 0f ? 1f / fadeSpeed : 0f);
+
         // Fade out current background
         float elapsed = 0f;
         Color color = backgroundImage.color;
 
-        while (elapsed < 1f)
+        if (halfDuration > 0f)
         {
-            elapsed += fadeSpeed * Time.deltaTime;
-            color.a = Mathf.Lerp(1f, 0f, elapsed);
-            backgroundImage.color = color;
-            yield return null;
+            while (elapsed < halfDuration)
+            {
+                elapsed += Time.deltaTime;
+                color.a = Mathf.Lerp(1f, 0f, Mathf.Clamp01(elapsed / halfDuration));
+                backgroundImage.color = color;
+                yield return null;
+            }
         }
 
         // Change sprite
@@ -83,20 +90,27 @@ public class BackgroundManager : MonoBehaviour
 
         // Fade in new background
         elapsed = 0f;
-        while (elapsed < 1f)
+        if (halfDuration > 0f)
         {
-            elapsed += fadeSpeed * Time.deltaTime;
-            color.a = Mathf.Lerp(0f, 1f, elapsed);
-            backgroundImage.color = color;
-            yield return null;
+            while (elapsed < halfDuration)
+            {
+                elapsed += Time.deltaTime;
+                color.a = Mathf.Lerp(0f, 1f, Mathf.Clamp01(elapsed / halfDuration));
+                backgroundImage.color = color;
+                yield return null;
+            }
         }
 
         color.a = 1f;
         backgroundImage.color = color;
     }
 
-    private IEnumerator CrossfadeToBackground(Sprite newBackground)
+    private IEnumerator CrossfadeToBackground(Sprite newBackground, float? durationOverride = null)
     {
+        float duration = durationOverride.HasValue && durationOverride.Value > 0f
+            ? durationOverride.Value
+            : (fadeSpeed > 0f ? 1f / fadeSpeed : 0f);
+
         fadeImage.sprite = newBackground;
         fadeImage.gameObject.SetActive(true);
 
@@ -105,12 +119,15 @@ public class BackgroundManager : MonoBehaviour
         color.a = 0f;
         fadeImage.color = color;
 
-        while (elapsed < 1f)
+        if (duration > 0f)
         {
-            elapsed += fadeSpeed * Time.deltaTime;
-            color.a = Mathf.Lerp(0f, 1f, elapsed);
-            fadeImage.color = color;
-            yield return null;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                color.a = Mathf.Lerp(0f, 1f, Mathf.Clamp01(elapsed / duration));
+                fadeImage.color = color;
+                yield return null;
+            }
         }
 
         // Swap sprites

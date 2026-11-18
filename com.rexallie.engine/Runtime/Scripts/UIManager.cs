@@ -239,6 +239,16 @@ public class UIManager : MonoBehaviour
             preferencesButton.onClick.AddListener(() => ShowPanelWithFocus(preferencesPanel.Show));
         }
 
+        UIButtonSound.AttachAll(uiContent != null ? uiContent : gameObject);
+
+        if (PlayerPrefs.GetInt("StartWithDarkTransition", 0) == 1)
+        {
+            PlayerPrefs.SetInt("StartWithDarkTransition", 0);
+            PlayerPrefs.Save();
+            HideUI(0f);
+            FadeOutScreen(0f, Color.black);
+        }
+
         string currentLanguage = PlayerPrefs.GetString("language", "en");
         DialogueManager.Instance.LoadScriptFromFile(currentLanguage, initialScriptName);
         DialogueManager.Instance.AdvanceDialogue();
@@ -1505,7 +1515,7 @@ public class UIManager : MonoBehaviour
             float progress = Mathf.Clamp01(elapsed / duration);
             if (fadeOverlayCanvasGroup != null)
             {
-                fadeOverlayCanvasGroup.alpha = Mathf.Lerp(startAlpha, endAlpha, progress);
+                fadeOverlayCanvasGroup.alpha = Mathf.SmoothStep(startAlpha, endAlpha, progress);
             }
             yield return null;
         }

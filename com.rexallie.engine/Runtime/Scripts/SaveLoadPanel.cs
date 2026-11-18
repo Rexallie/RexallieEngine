@@ -76,6 +76,10 @@ public class SaveLoadPanel : MonoBehaviour
         cancelRenameButton.onClick.AddListener(HideRenamePrompt);
         renamePanel.SetActive(false);
 
+        UIButtonSound.Attach(closeButton, AudioManager.UISoundType.Cancel);
+        UIButtonSound.Attach(confirmRenameButton, AudioManager.UISoundType.Confirm);
+        UIButtonSound.Attach(cancelRenameButton, AudioManager.UISoundType.Cancel);
+
         AutoLocalizePanel();
     }
 
@@ -110,6 +114,7 @@ public class SaveLoadPanel : MonoBehaviour
 
             SaveSlotUI slotUI = newSlot.GetComponent<SaveSlotUI>();
             slotUI.Configure(i, isSaveMode, metadata, this);
+            UIButtonSound.AttachAll(newSlot);
         }
     }
 

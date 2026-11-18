@@ -53,6 +53,7 @@ public class HistoryPanel : MonoBehaviour
         if (closeButton != null)
         {
             closeButton.onClick.AddListener(Hide);
+            UIButtonSound.Attach(closeButton, AudioManager.UISoundType.Cancel);
         }
         AutoLocalizePanel();
     }
@@ -93,6 +94,7 @@ public class HistoryPanel : MonoBehaviour
                         Hide();
                     }
                 });
+                UIButtonSound.AttachAll(newEntryObj);
             }
         }
 

@@ -4,6 +4,13 @@ using UnityEngine;
 
 public class AudioManager : MonoBehaviour
 {
+    public enum UISoundType
+    {
+        Select,
+        Confirm,
+        Cancel
+    }
+
     public static AudioManager Instance { get; private set; }
 
     [Header("Audio Sources")]
@@ -16,6 +23,14 @@ public class AudioManager : MonoBehaviour
     public List<AudioData> soundEffects = new List<AudioData>();
     public List<AudioData> voiceClips = new List<AudioData>();
 
+    [Header("UI Button Sounds")]
+    public AudioClip uiSelectClip;
+    public AudioClip uiConfirmClip;
+    public AudioClip uiCancelClip;
+    public string uiSelectResourcePath = "Sound/select";
+    public string uiConfirmResourcePath = "Sound/confirm";
+    public string uiCancelResourcePath = "Sound/cancel";
+
     [Header("Settings")]
     public float musicVolume = 0.7f;
     public float sfxVolume = 1f;
@@ -23,6 +38,7 @@ public class AudioManager : MonoBehaviour
 
     // Add this near the top of the class
     private string currentMusicTrack;
+    private readonly Dictionary<string, AudioClip> cachedResourceSfx = new Dictionary<string, AudioClip>();
 
     void Awake()
     {
@@ -126,15 +142,60 @@ public class AudioManager : MonoBehaviour
 
     public void PlaySFX(string sfxName)
     {
+        AudioClip clip = null;
         AudioData sfx = soundEffects.Find(s => s.clipName == sfxName);
+        if (sfx != null)
+        {
+            clip = sfx.clip;
+        }
+        else if (!cachedResourceSfx.TryGetValue(sfxName, out clip) || clip == null)
+        {
+            clip = Resources.Load<AudioClip>($"Sound/{sfxName}");
+            if (clip != null)
+            {
+                cachedResourceSfx[sfxName] = clip;
+            }
+        }
 
-        if (sfx == null)
+        if (clip == null)
         {
             Debug.LogError($"Sound effect not found: {sfxName}");
             return;
         }
 
-        sfxSource.PlayOneShot(sfx.clip);
+        if (sfxSource != null)
+        {
+            sfxSource.PlayOneShot(clip);
+        }
+    }
+
+    public void PlayUISound(UISoundType type)
+    {
+        AudioClip clip = null;
+        switch (type)
+        {
+            case UISoundType.Select:
+                if (uiSelectClip == null && !string.IsNullOrEmpty(uiSelectResourcePath))
+                    uiSelectClip = Resources.Load<AudioClip>(uiSelectResourcePath);
+                clip = uiSelectClip;
+                break;
+            case UISoundType.Cancel:
+                if (uiCancelClip == null && !string.IsNullOrEmpty(uiCancelResourcePath))
+                    uiCancelClip = Resources.Load<AudioClip>(uiCancelResourcePath);
+                clip = uiCancelClip;
+                break;
+            case UISoundType.Confirm:
+            default:
+                if (uiConfirmClip == null && !string.IsNullOrEmpty(uiConfirmResourcePath))
+                    uiConfirmClip = Resources.Load<AudioClip>(uiConfirmResourcePath);
+                clip = uiConfirmClip;
+                break;
+        }
+
+        if (clip != null && sfxSource != null)
+        {
+            sfxSource.PlayOneShot(clip);
+        }
     }
 
     // ==================== VOICE ====================

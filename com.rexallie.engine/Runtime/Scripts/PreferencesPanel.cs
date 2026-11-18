@@ -56,6 +56,8 @@ public class PreferencesPanel : MonoBehaviour
     {
         panelRoot.SetActive(false); // Start hidden
         closeButton.onClick.AddListener(Hide);
+        UIButtonSound.AttachAll(panelRoot);
+        UIButtonSound.Attach(closeButton, AudioManager.UISoundType.Cancel);
 
         PopulateDisplayOptions();
         SetupListeners();

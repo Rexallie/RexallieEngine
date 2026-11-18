@@ -159,6 +159,7 @@ public class ChoiceUI : MonoBehaviour
             // Add a listener to the button's click event.
             if (btnComponent != null)
             {
+                UIButtonSound.Attach(btnComponent, AudioManager.UISoundType.Confirm);
                 btnComponent.onClick.AddListener(() =>
                 {
                     // When clicked, hide the choices and tell the DialogueManager which choice was made.

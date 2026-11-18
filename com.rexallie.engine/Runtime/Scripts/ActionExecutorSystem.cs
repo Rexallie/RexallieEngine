@@ -425,14 +425,24 @@ public class ActionExecutor : MonoBehaviour
 
     private void ExecuteSetBackground(ActionNode action)
     {
-        // @setBackground bg_school_hallway fade
+        // @setBackground bg_school_hallway fade [time:2.0]
         string backgroundName = action.parameters.GetValueOrDefault("param1", "");
         string transition = action.parameters.GetValueOrDefault("param2", "instant");
         if (DialogueManager.Instance != null && DialogueManager.Instance.IsSkipping) transition = "instant";
 
+        float? durationOverride = null;
+        string durationStr = action.parameters.GetValueOrDefault("time",
+            action.parameters.GetValueOrDefault("duration",
+            action.parameters.GetValueOrDefault("fadeIn", "")));
+        if (!string.IsNullOrEmpty(durationStr) &&
+            float.TryParse(durationStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float parsedDuration))
+        {
+            durationOverride = parsedDuration;
+        }
+
         if (backgroundManager != null)
         {
-            backgroundManager.SetBackground(backgroundName, transition);
+            backgroundManager.SetBackground(backgroundName, transition, durationOverride);
         }
     }
 
