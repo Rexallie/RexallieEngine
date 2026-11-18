@@ -74,6 +74,8 @@ public class AudioManager : MonoBehaviour
 
     public void StopMusic(float fadeOutDuration = 0f)
     {
+        currentMusicTrack = null;
+
         // Stop any currently running fades to prevent conflicts.
         StopAllCoroutines();
 
@@ -186,6 +188,11 @@ public class AudioManager : MonoBehaviour
     {
         if (!string.IsNullOrEmpty(musicTrackName))
         {
+            if (currentMusicTrack == musicTrackName && musicSource != null && musicSource.isPlaying)
+            {
+                return;
+            }
+
             // Instantly play the music track, no fade.
             PlayMusic(musicTrackName);
         }
