@@ -142,10 +142,15 @@ public class CharacterController : MonoBehaviour
         }
     }
 
-    public void SetHighlightState(bool isHighlighted)
+    public void SetHighlightState(bool isHighlighted, bool instant = false)
     {
-        if (!gameObject.activeInHierarchy)
+        if (instant || !gameObject.activeInHierarchy)
         {
+            if (highlightCoroutine != null)
+            {
+                StopCoroutine(highlightCoroutine);
+                highlightCoroutine = null;
+            }
             Color targetColor = isHighlighted ? Color.white : dimColor;
             if (portraitImage != null) portraitImage.color = targetColor;
             if (expressionImage != null) expressionImage.color = targetColor;

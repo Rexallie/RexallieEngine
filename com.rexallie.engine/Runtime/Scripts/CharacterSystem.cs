@@ -62,6 +62,7 @@ public class CharacterManager : MonoBehaviour
     private void HandleDialogueLineDisplayed(DialogueLine line)
     {
         string speakerID = line.speakerID != null ? line.speakerID.ToLower() : "";
+        bool instant = DialogueManager.Instance != null && (DialogueManager.Instance.IsRestoringState || DialogueManager.Instance.IsSkipping);
 
         // Loop through all characters currently on screen
         foreach (var characterPair in activeCharacters)
@@ -72,7 +73,7 @@ public class CharacterManager : MonoBehaviour
             // If this character's ID matches the speaker's ID, highlight them. Otherwise, dim them.
             bool isSpeaking = !string.IsNullOrEmpty(speakerID) && characterPair.Key == speakerID;
 
-            controller.SetHighlightState(isSpeaking);
+            controller.SetHighlightState(isSpeaking, instant);
             controller.SetSortingFront(isSpeaking);
         }
     }
