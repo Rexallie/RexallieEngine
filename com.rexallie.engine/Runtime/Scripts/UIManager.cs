@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 using TMPro;
 using System.Collections;
 using UnityEngine.UI;
@@ -239,6 +240,16 @@ public class UIManager : MonoBehaviour
             preferencesButton.onClick.AddListener(() => ShowPanelWithFocus(preferencesPanel.Show));
         }
 
+        if (mainMenuButton != null && mainMenuButton.onClick.GetPersistentEventCount() == 0)
+        {
+            mainMenuButton.onClick.AddListener(ReturnToMainMenu);
+        }
+
+        if (DialogueManager.Instance != null)
+        {
+            DialogueManager.Instance.OnReplayEnded += HandleReplayEnded;
+        }
+
         UIButtonSound.AttachAll(uiContent != null ? uiContent : gameObject);
 
         if (PlayerPrefs.GetInt("StartWithDarkTransition", 0) == 1)
@@ -250,9 +261,27 @@ public class UIManager : MonoBehaviour
             StartCoroutine(ClearStartupDarkOverlay());
         }
 
-        string currentLanguage = PlayerPrefs.GetString("language", "en");
-        DialogueManager.Instance.LoadScriptFromFile(currentLanguage, initialScriptName);
-        DialogueManager.Instance.AdvanceDialogue();
+        string replayCgId = PlayerPrefs.GetString("ReplayCGOnStart", "");
+        int loadSlotOnStart = PlayerPrefs.GetInt("LoadSlotOnStart", -1);
+
+        if (!string.IsNullOrEmpty(replayCgId))
+        {
+            PlayerPrefs.DeleteKey("ReplayCGOnStart");
+            PlayerPrefs.Save();
+            DialogueManager.Instance.StartReplay(replayCgId);
+        }
+        else if (loadSlotOnStart >= 0 && SaveManager.Instance != null)
+        {
+            PlayerPrefs.DeleteKey("LoadSlotOnStart");
+            PlayerPrefs.Save();
+            SaveManager.Instance.LoadGame(loadSlotOnStart);
+        }
+        else
+        {
+            string currentLanguage = PlayerPrefs.GetString("language", "en");
+            DialogueManager.Instance.LoadScriptFromFile(currentLanguage, initialScriptName);
+            DialogueManager.Instance.AdvanceDialogue();
+        }
 
         // Check if we need to open the Load panel on startup
         if (PlayerPrefs.GetInt("OpenLoadPanelOnStart", 0) == 1)
@@ -264,6 +293,23 @@ public class UIManager : MonoBehaviour
                 ShowPanelWithFocus(() => saveLoadPanel.Show(false));
             }
         }
+    }
+
+    private void ReturnToMainMenu()
+    {
+        if (DialogueManager.Instance != null && DialogueManager.Instance.IsReplaying)
+        {
+            PlayerPrefs.SetInt("ReturnToGalleryOnMenu", 1);
+            PlayerPrefs.Save();
+        }
+        FadeOutScreen(0.5f, Color.black, () => SceneManager.LoadScene("MainMenu"));
+    }
+
+    private void HandleReplayEnded()
+    {
+        PlayerPrefs.SetInt("ReturnToGalleryOnMenu", 1);
+        PlayerPrefs.Save();
+        FadeOutScreen(0.6f, Color.black, () => SceneManager.LoadScene("MainMenu"));
     }
 
     private IEnumerator ClearStartupDarkOverlay()
@@ -323,6 +369,7 @@ public class UIManager : MonoBehaviour
         if (DialogueManager.Instance != null)
         {
             DialogueManager.Instance.OnDialogueLineDisplayed -= DisplayDialogue;
+            DialogueManager.Instance.OnReplayEnded -= HandleReplayEnded;
         }
         if (LocalizationManager.Instance != null)
         {

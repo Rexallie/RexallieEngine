@@ -94,7 +94,7 @@ public class PersistentDataManager : MonoBehaviour
         }
 
         // Convert the loaded lists into HashSets for fast lookups.
-        unlockedCGsLookup = new HashSet<string>(data.unlockedGalleryCGs);
+        unlockedCGsLookup = new HashSet<string>(data.unlockedGalleryCGs, System.StringComparer.OrdinalIgnoreCase);
         readDialogueIDsLookup = new HashSet<string>(data.readDialogueIDs); // <-- ADDED
     }
 }

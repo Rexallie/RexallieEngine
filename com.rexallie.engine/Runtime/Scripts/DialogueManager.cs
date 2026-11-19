@@ -654,6 +654,10 @@ public class DialogueManager : MonoBehaviour
         replayRegistry.Clear();
         
         TextAsset[] scriptAssets = Resources.LoadAll<TextAsset>($"Dialogues/{language}");
+        if ((scriptAssets == null || scriptAssets.Length == 0) && language != "en")
+        {
+            scriptAssets = Resources.LoadAll<TextAsset>("Dialogues/en");
+        }
         if (scriptAssets == null || scriptAssets.Length == 0) return;
 
         foreach (var asset in scriptAssets)
@@ -706,10 +710,28 @@ public class DialogueManager : MonoBehaviour
 
     public void StartReplay(string cgId)
     {
+        if (string.IsNullOrEmpty(cgId)) return;
+
+        string currentLanguage = PlayerPrefs.GetString("language", "en");
+        if (replayRegistry.Count == 0)
+        {
+            InitializeReplayRegistry(currentLanguage);
+        }
+
         string cgKey = cgId.ToLower();
         if (!replayRegistry.TryGetValue(cgKey, out ReplaySceneInfo info))
         {
+            if (currentLanguage != "en")
+            {
+                InitializeReplayRegistry("en");
+                replayRegistry.TryGetValue(cgKey, out info);
+            }
+        }
+
+        if (info == null)
+        {
             Debug.LogError($"[DialogueManager] Replay scene not found for CG ID '{cgId}'");
+            OnReplayEnded?.Invoke();
             return;
         }
 
@@ -718,7 +740,6 @@ public class DialogueManager : MonoBehaviour
         isReplaying = true;
         activeReplayEndIndex = info.endNodeIndex;
 
-        string currentLanguage = PlayerPrefs.GetString("language", "en");
         LoadScriptFromFile(currentLanguage, info.scriptName);
 
         currentNodeIndex = info.startNodeIndex;
